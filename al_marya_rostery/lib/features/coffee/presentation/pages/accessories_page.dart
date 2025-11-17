@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../../../widgets/common/app_drawer.dart';
 import '../../../accessories/data/accessory_model.dart';
 import '../../../accessories/data/accessory_api_service.dart';
@@ -81,6 +82,7 @@ class _AccessoriesPageState extends State<AccessoriesPage> {
         ],
       ),
       drawer: const AppDrawer(),
+      bottomNavigationBar: const AppBottomNavBar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

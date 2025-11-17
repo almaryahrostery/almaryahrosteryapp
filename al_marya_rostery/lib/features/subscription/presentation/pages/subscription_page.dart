@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../../../widgets/common/app_drawer.dart';
 import '../../../../data/datasources/remote/subscriptions_api_service.dart';
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../../../widgets/common/app_drawer.dart';
 import '../providers/coffee_provider.dart';
 
@@ -46,6 +47,7 @@ class _FeaturedProductsPageState extends State<FeaturedProductsPage> {
         elevation: 2,
       ),
       drawer: const AppDrawer(),
+      bottomNavigationBar: const AppBottomNavBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
