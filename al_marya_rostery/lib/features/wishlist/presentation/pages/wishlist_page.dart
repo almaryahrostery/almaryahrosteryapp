@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/skeleton_loaders.dart';
 import '../../../../data/models/coffee_product_model.dart';
 import '../../../../services/wishlist_api_service.dart';
 import '../../../coffee/presentation/pages/product_detail_page.dart';
@@ -156,10 +157,10 @@ class _WishlistPageState extends State<WishlistPage> {
           // Content
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.primaryBrown,
-                    ),
+                ? GridSkeleton(
+                    itemCount: 6,
+                    crossAxisCount: 2,
+                    itemBuilder: (context, index) => const ProductCardSkeleton(),
                   )
                 : _buildContent(),
           ),

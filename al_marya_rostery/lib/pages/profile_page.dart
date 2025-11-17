@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../core/theme/app_theme.dart';
 import '../core/utils/error_handler.dart';
+import '../core/widgets/skeleton_loaders.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -151,8 +152,17 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         builder: (context, authProvider, child) {
           // Handle loading state
           if (!authProvider.isInitialized) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppTheme.primaryBrown),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  const ProfileSectionSkeleton(),
+                  const SizedBox(height: 16),
+                  const ProfileSectionSkeleton(),
+                  const SizedBox(height: 16),
+                  const ProfileSectionSkeleton(),
+                ],
+              ),
             );
           }
 
@@ -711,11 +721,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
       }
     } catch (e) {
       if (mounted) {
-        ErrorHandler.showErrorSnackBar(
-          context,
-          e,
-          onRetry: _pickImage,
-        );
+        ErrorHandler.showErrorSnackBar(context, e, onRetry: _pickImage);
       }
     }
   }

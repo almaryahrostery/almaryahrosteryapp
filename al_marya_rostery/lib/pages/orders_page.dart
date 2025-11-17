@@ -9,6 +9,7 @@ import '../core/theme/app_theme.dart';
 import '../core/services/order_cancellation_service.dart';
 import '../core/constants/app_constants.dart';
 import '../core/utils/error_handler.dart';
+import '../core/widgets/skeleton_loaders.dart';
 import '../models/order.dart';
 import '../models/cart.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
@@ -223,8 +224,9 @@ class _OrdersPageState extends State<OrdersPage>
       body: !authProvider.isAuthenticated
           ? _buildGuestState()
           : _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primaryBrown),
+          ? ListSkeleton(
+              itemCount: 5,
+              itemBuilder: (context, index) => const OrderCardSkeleton(),
             )
           : _errorMessage != null
           ? _buildErrorState()
@@ -1056,7 +1058,22 @@ class _OrdersPageState extends State<OrdersPage>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(
+        child: Card(
+          margin: EdgeInsets.all(24),
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppTheme.primaryBrown),
+                SizedBox(height: 16),
+                Text('Canceling order...'),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
 
     try {

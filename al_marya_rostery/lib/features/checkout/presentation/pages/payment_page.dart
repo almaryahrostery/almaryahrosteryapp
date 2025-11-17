@@ -30,7 +30,6 @@ class _PaymentPageState extends State<PaymentPage> {
   bool _isProcessing = false;
   bool _isApplePaySupported = false;
   bool _isGooglePaySupported = false;
-  bool _isStripeInitialized = false;
 
   // Card form controllers
   final _cardNumberController = TextEditingController();
@@ -82,22 +81,12 @@ class _PaymentPageState extends State<PaymentPage> {
       // Then initialize Stripe (optional - only needed for card payments)
       try {
         await ConfigService.ensureStripeInitialized();
-        if (mounted) {
-          setState(() {
-            _isStripeInitialized = true;
-          });
-        }
         debugPrint('✅ Stripe initialized - card payments available');
       } catch (stripeError) {
         debugPrint('⚠️ Stripe initialization failed: $stripeError');
         debugPrint(
           'ℹ️ Card payments will not be available. Cash on Delivery is still available.',
         );
-        if (mounted) {
-          setState(() {
-            _isStripeInitialized = false;
-          });
-        }
         // Don't throw - allow cash payments to work
       }
     } catch (e) {

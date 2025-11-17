@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../core/providers/language_provider.dart';
 import '../core/utils/i18n_utils.dart';
 import '../core/theme/app_theme.dart';
-import '../core/utils/error_handler.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

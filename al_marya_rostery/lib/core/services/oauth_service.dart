@@ -260,29 +260,30 @@ class OAuthService {
     return await _secureStorage.read(key: 'auth_token');
   }
 
-  /// Helper method to get user-friendly error messages
-  String _getFirebaseErrorMessage(String code) {
-    switch (code) {
-      case 'account-exists-with-different-credential':
-        return 'An account already exists with the same email but different sign-in method.';
-      case 'invalid-credential':
-        return 'The credential is invalid or has expired.';
-      case 'operation-not-allowed':
-        return 'This sign-in method is not enabled.';
-      case 'user-disabled':
-        return 'This user account has been disabled.';
-      case 'user-not-found':
-        return 'Incorrect email or password.';
-      case 'wrong-password':
-        return 'Incorrect email or password.';
-      case 'invalid-verification-code':
-        return 'Invalid verification code.';
-      case 'invalid-verification-id':
-        return 'Invalid verification ID.';
-      case 'network-request-failed':
-        return 'Network error. Please check your internet connection.';
-      default:
-        return 'An error occurred. Please try again.';
-    }
-  }
+  // TODO: Keeping for potential future use - replaced by centralized ErrorHandler
+  // /// Helper method to get user-friendly error messages
+  // String _getFirebaseErrorMessage(String code) {
+  //   switch (code) {
+  //     case 'account-exists-with-different-credential':
+  //       return 'An account already exists with the same email but different sign-in method.';
+  //     case 'invalid-credential':
+  //       return 'The credential is invalid or has expired.';
+  //     case 'operation-not-allowed':
+  //       return 'This sign-in method is not enabled.';
+  //     case 'user-disabled':
+  //       return 'This user account has been disabled.';
+  //     case 'user-not-found':
+  //       return 'Incorrect email or password.';
+  //     case 'wrong-password':
+  //       return 'Incorrect email or password.';
+  //     case 'invalid-verification-code':
+  //       return 'Invalid verification code.';
+  //     case 'invalid-verification-id':
+  //       return 'Invalid verification ID.';
+  //     case 'network-request-failed':
+  //       return 'Network error. Please check your internet connection.';
+  //     default:
+  //       return 'An error occurred. Please try again.';
+  //   }
+  // }
 }

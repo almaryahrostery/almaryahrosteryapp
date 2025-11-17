@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 /// Shimmer effect for skeleton loaders
-/// 
+///
 /// Creates animated gradient that moves from left to right,
 /// giving the appearance of content loading.
 class ShimmerEffect extends StatefulWidget {
   final Widget child;
   final Color? baseColor;
   final Color? highlightColor;
-  
+
   const ShimmerEffect({
     super.key,
     required this.child,
@@ -53,11 +53,7 @@ class _ShimmerEffectState extends State<ShimmerEffect>
             return LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
-              colors: [
-                baseColor,
-                highlightColor,
-                baseColor,
-              ],
+              colors: [baseColor, highlightColor, baseColor],
               stops: [
                 (animationValue - 0.3).clamp(0.0, 1.0),
                 animationValue.clamp(0.0, 1.0),
@@ -105,11 +101,7 @@ class SkeletonCircle extends StatelessWidget {
   final double size;
   final Color? color;
 
-  const SkeletonCircle({
-    super.key,
-    this.size = 40.0,
-    this.color,
-  });
+  const SkeletonCircle({super.key, this.size = 40.0, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -130,12 +122,7 @@ class SkeletonLine extends StatelessWidget {
   final double height;
   final Color? color;
 
-  const SkeletonLine({
-    super.key,
-    this.width,
-    this.height = 14.0,
-    this.color,
-  });
+  const SkeletonLine({super.key, this.width, this.height = 14.0, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -157,9 +144,7 @@ class ProductCardSkeleton extends StatelessWidget {
     return ShimmerEffect(
       child: Card(
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -169,34 +154,25 @@ class ProductCardSkeleton extends StatelessWidget {
               height: 150,
               borderRadius: 12,
             ),
-            
+
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
-                  const SkeletonLine(
-                    width: double.infinity,
-                    height: 16,
-                  ),
+                  const SkeletonLine(width: double.infinity, height: 16),
                   const SizedBox(height: 8),
-                  
+
                   // Subtitle
-                  const SkeletonLine(
-                    width: 120,
-                    height: 12,
-                  ),
+                  const SkeletonLine(width: 120, height: 12),
                   const SizedBox(height: 12),
-                  
+
                   // Price
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const SkeletonLine(
-                        width: 80,
-                        height: 18,
-                      ),
+                      const SkeletonLine(width: 80, height: 18),
                       SkeletonBox(
                         width: 36,
                         height: 36,
@@ -229,39 +205,26 @@ class CartItemSkeleton extends StatelessWidget {
           child: Row(
             children: [
               // Product image
-              const SkeletonBox(
-                width: 80,
-                height: 80,
-                borderRadius: 8,
-              ),
+              const SkeletonBox(width: 80, height: 80, borderRadius: 8),
               const SizedBox(width: 12),
-              
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Product name
-                    const SkeletonLine(
-                      width: double.infinity,
-                      height: 16,
-                    ),
+                    const SkeletonLine(width: double.infinity, height: 16),
                     const SizedBox(height: 8),
-                    
+
                     // Product variant/size
-                    const SkeletonLine(
-                      width: 100,
-                      height: 12,
-                    ),
+                    const SkeletonLine(width: 100, height: 12),
                     const SizedBox(height: 12),
-                    
+
                     // Price and quantity
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SkeletonLine(
-                          width: 60,
-                          height: 14,
-                        ),
+                        const SkeletonLine(width: 60, height: 14),
                         SkeletonBox(
                           width: 80,
                           height: 32,
@@ -299,10 +262,7 @@ class OrderCardSkeleton extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const SkeletonLine(
-                    width: 120,
-                    height: 16,
-                  ),
+                  const SkeletonLine(width: 120, height: 16),
                   SkeletonBox(
                     width: 80,
                     height: 24,
@@ -312,48 +272,41 @@ class OrderCardSkeleton extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Order date
-              const SkeletonLine(
-                width: 150,
-                height: 12,
-              ),
+              const SkeletonLine(width: 150, height: 12),
               const SizedBox(height: 16),
-              
+
               // Divider
-              Container(
-                height: 1,
-                color: Colors.grey[300],
-              ),
+              Container(height: 1, color: Colors.grey[300]),
               const SizedBox(height: 16),
-              
+
               // Product rows
-              ...List.generate(2, (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    const SkeletonBox(
-                      width: 60,
-                      height: 60,
-                      borderRadius: 6,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SkeletonLine(width: double.infinity, height: 14),
-                          SizedBox(height: 6),
-                          SkeletonLine(width: 80, height: 12),
-                        ],
+              ...List.generate(
+                2,
+                (index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      const SkeletonBox(width: 60, height: 60, borderRadius: 6),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonLine(width: double.infinity, height: 14),
+                            SizedBox(height: 6),
+                            SkeletonLine(width: 80, height: 12),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              )),
-              
+              ),
+
               const SizedBox(height: 12),
-              
+
               // Total
               const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -384,34 +337,35 @@ class ProfileSectionSkeleton extends StatelessWidget {
             // Avatar
             const SkeletonCircle(size: 100),
             const SizedBox(height: 16),
-            
+
             // Name
             const SkeletonLine(width: 150, height: 20),
             const SizedBox(height: 8),
-            
+
             // Email
             const SkeletonLine(width: 200, height: 14),
             const SizedBox(height: 24),
-            
+
             // Menu items
-            ...List.generate(5, (index) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                children: [
-                  const SkeletonCircle(size: 40),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: SkeletonLine(height: 16),
-                  ),
-                  SkeletonBox(
-                    width: 20,
-                    height: 20,
-                    borderRadius: 4,
-                    color: Colors.grey[300],
-                  ),
-                ],
+            ...List.generate(
+              5,
+              (index) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  children: [
+                    const SkeletonCircle(size: 40),
+                    const SizedBox(width: 16),
+                    const Expanded(child: SkeletonLine(height: 16)),
+                    SkeletonBox(
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      color: Colors.grey[300],
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),

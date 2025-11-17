@@ -229,32 +229,33 @@ class AuthTokenService {
     return 'https://almaryahrostery.onrender.com';
   }
 
-  /// Get fresh token from Firebase (most reliable source)
-  Future<String?> _getFirebaseToken({bool forceRefresh = false}) async {
-    try {
-      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
-      if (firebaseUser == null) return null;
-
-      // Force refresh to get new token
-      final token = await firebaseUser.getIdToken(forceRefresh);
-
-      if (token != null) {
-        AppLogger.success(
-          '🔥 Fresh Firebase token obtained (${forceRefresh ? "force-refreshed" : "cached"})',
-          tag: 'AuthTokenService',
-        );
-      }
-
-      return token;
-    } catch (e) {
-      AppLogger.error(
-        'Failed to get Firebase token',
-        tag: 'AuthTokenService',
-        error: e,
-      );
-      return null;
-    }
-  }
+  // TODO: Keeping for potential future use - direct Firebase token access
+  // /// Get fresh token from Firebase (most reliable source)
+  // Future<String?> _getFirebaseToken({bool forceRefresh = false}) async {
+  //   try {
+  //     final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+  //     if (firebaseUser == null) return null;
+  //
+  //     // Force refresh to get new token
+  //     final token = await firebaseUser.getIdToken(forceRefresh);
+  //
+  //     if (token != null) {
+  //       AppLogger.success(
+  //         '🔥 Fresh Firebase token obtained (${forceRefresh ? "force-refreshed" : "cached"})',
+  //         tag: 'AuthTokenService',
+  //       );
+  //     }
+  //
+  //     return token;
+  //   } catch (e) {
+  //     AppLogger.error(
+  //       'Failed to get Firebase token',
+  //       tag: 'AuthTokenService',
+  //       error: e,
+  //     );
+  //     return null;
+  //   }
+  // }
 
   /// Check if current token is valid (exists and not expired)
   bool get hasValidToken {
@@ -382,16 +383,17 @@ class AuthTokenService {
     }
   }
 
-  /// Check if token should be refreshed (within 5 minutes of expiry)
-  bool _shouldRefreshToken() {
-    if (_tokenExpiry == null) return false;
-
-    final now = DateTime.now();
-    final timeRemaining = _tokenExpiry!.difference(now);
-
-    // Refresh if less than 5 minutes remaining
-    return timeRemaining.inMinutes < 5;
-  }
+  // TODO: Keeping for potential future use - proactive token refresh check
+  // /// Check if token should be refreshed (within 5 minutes of expiry)
+  // bool _shouldRefreshToken() {
+  //   if (_tokenExpiry == null) return false;
+  //
+  //   final now = DateTime.now();
+  //   final timeRemaining = _tokenExpiry!.difference(now);
+  //
+  //   // Refresh if less than 5 minutes remaining
+  //   return timeRemaining.inMinutes < 5;
+  // }
 
   /// Refresh the access token using refresh token
   ///
