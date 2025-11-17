@@ -2,10 +2,12 @@ import 'package:qahwat_al_emarat/domain/repositories/auth_repository.dart';
 import 'package:qahwat_al_emarat/domain/models/auth_models.dart';
 import 'package:qahwat_al_emarat/domain/models/auth_request_models.dart';
 import '../datasources/firebase_auth_service.dart';
+import '../../core/services/oauth_service.dart';
 
 /// Firebase-based implementation of AuthRepository
 class FirebaseAuthRepositoryImpl implements AuthRepository {
   final FirebaseAuthService _firebaseAuthService;
+  final OAuthService _oauthService = OAuthService();
 
   FirebaseAuthRepositoryImpl(this._firebaseAuthService);
 
@@ -45,7 +47,27 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<AuthResponse> signInWithGoogle() async {
-    return await _firebaseAuthService.signInWithGoogle();
+    // Use OAuthService to get backend JWT token (not Firebase token!)
+    final result = await _oauthService.signInWithGoogle();
+
+    if (result['success'] != true) {
+      throw AuthException(result['message'] ?? 'Google Sign-In failed');
+    }
+
+    // Get user data from Firebase
+    final firebaseUser = await _firebaseAuthService.getCurrentUser();
+    if (firebaseUser == null) {
+      throw AuthException('Failed to get user data after Google Sign-In');
+    }
+
+    // Return AuthResponse with backend JWT token (30 days expiry)
+    return AuthResponse(
+      accessToken: result['token'],
+      refreshToken: '', // Backend doesn't use refresh tokens for OAuth
+      expiresIn: 2592000, // 30 days in seconds (30 * 24 * 60 * 60)
+      tokenType: 'Bearer',
+      user: firebaseUser,
+    );
   }
 
   @override

@@ -1,10 +1,32 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_stripe/flutter_stripe.dart';
 import '../constants/app_constants.dart';
 
 /// Service to fetch public configuration from backend
 class ConfigService {
   static String? _cachedStripeKey;
+  static bool _stripeInitialized = false;
+
+  /// Ensure Stripe is initialized before payment
+  /// Call this before showing payment UI
+  static Future<void> ensureStripeInitialized() async {
+    if (_stripeInitialized) {
+      return; // Already initialized
+    }
+
+    try {
+      final stripeKey = await getStripePublishableKey();
+      Stripe.publishableKey = stripeKey;
+      _stripeInitialized = true;
+      print('✅ Stripe initialized on-demand');
+    } catch (e) {
+      print('❌ Failed to initialize Stripe: $e');
+      throw Exception(
+        'Unable to initialize payment system. Please check your connection.',
+      );
+    }
+  }
 
   /// Fetch Stripe publishable key from backend
   /// Returns cached value if already fetched

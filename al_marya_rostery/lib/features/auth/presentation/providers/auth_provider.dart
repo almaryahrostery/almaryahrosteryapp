@@ -600,6 +600,15 @@ class AuthProvider extends ChangeNotifier {
       ApiClient().setAuthToken(response.accessToken);
       debugPrint('✅ Auth token set for API calls');
 
+      // CRITICAL: Save backend JWT token to AuthTokenService
+      final authTokenService = AuthTokenService();
+      await authTokenService.setTokens(
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        expiresInSeconds: response.expiresIn,
+      );
+      debugPrint('✅ Auth tokens saved via AuthTokenService');
+
       _startSessionTimer();
 
       // Ensure user has QR code (background task)

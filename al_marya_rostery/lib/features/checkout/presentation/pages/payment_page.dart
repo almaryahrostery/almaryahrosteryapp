@@ -5,8 +5,11 @@ import 'dart:io' show Platform;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/payment_service.dart';
+import '../../../../core/services/config_service.dart';
+import '../../../../core/services/auth_token_service.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../data/services/order_service.dart';
+import '../../../auth/presentation/pages/login_page.dart';
 import 'order_confirmation_page.dart';
 
 /// PaymentPage handles payment processing for orders
@@ -21,10 +24,12 @@ class PaymentPage extends StatefulWidget {
 
 class _PaymentPageState extends State<PaymentPage> {
   final _formKey = GlobalKey<FormState>();
-  String _selectedPaymentMethod = 'card';
+  String _selectedPaymentMethod =
+      'cash'; // Default to cash since Stripe might not be ready
   bool _isProcessing = false;
   bool _isApplePaySupported = false;
   bool _isGooglePaySupported = false;
+  bool _isStripeInitialized = false;
 
   // Card form controllers
   final _cardNumberController = TextEditingController();
@@ -42,6 +47,9 @@ class _PaymentPageState extends State<PaymentPage> {
     _isApplePaySupported = Platform.isIOS;
     _isGooglePaySupported = Platform.isAndroid;
 
+    // Ensure Stripe is initialized for payments
+    _initializePaymentSystem();
+
     if (Platform.isIOS) {
       debugPrint(
         '🍎 Running on iOS - Apple Pay: ✓ Available | Google Pay: ✗ Not Available',
@@ -54,6 +62,55 @@ class _PaymentPageState extends State<PaymentPage> {
       debugPrint(
         '💻 Running on other platform - Digital wallets not available',
       );
+    }
+  }
+
+  Future<void> _initializePaymentSystem() async {
+    try {
+      // First, ensure auth token is fresh
+      debugPrint('🔐 Refreshing authentication token...');
+      final orderService = OrderService();
+      final token = await orderService.authToken;
+
+      if (token == null) {
+        throw Exception('Please log in to continue with checkout');
+      }
+
+      debugPrint('✅ Auth token refreshed successfully');
+
+      // Then initialize Stripe (optional - only needed for card payments)
+      try {
+        await ConfigService.ensureStripeInitialized();
+        if (mounted) {
+          setState(() {
+            _isStripeInitialized = true;
+          });
+        }
+        debugPrint('✅ Stripe initialized - card payments available');
+      } catch (stripeError) {
+        debugPrint('⚠️ Stripe initialization failed: $stripeError');
+        debugPrint(
+          'ℹ️ Card payments will not be available. Cash on Delivery is still available.',
+        );
+        if (mounted) {
+          setState(() {
+            _isStripeInitialized = false;
+          });
+        }
+        // Don't throw - allow cash payments to work
+      }
+    } catch (e) {
+      debugPrint('❌ Payment system initialization failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      rethrow; // Only rethrow if it's an auth error
     }
   }
 
@@ -659,6 +716,51 @@ class _PaymentPageState extends State<PaymentPage> {
       // Initialize services
       final orderService = OrderService();
       final paymentService = PaymentService();
+      final authService = AuthTokenService();
+
+      // Force fresh authentication token before order creation
+      debugPrint('🔐 Refreshing authentication token...');
+      final token = await authService.getAccessToken(forceRefresh: true);
+
+      if (token == null) {
+        // Token refresh failed - guide user to re-login
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+
+          final shouldReLogin = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text('Session Expired'),
+              content: const Text(
+                'Your login session has expired. Please log in again to complete your order.\n\n'
+                'Don\'t worry - your cart items will be saved!',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Log In'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldReLogin == true) {
+            // Navigate to login page
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          }
+        }
+        return;
+      }
+      debugPrint('✅ Fresh token obtained successfully');
 
       // Prepare order items
       final items = (widget.orderData['items'] as List).map((item) {
@@ -718,8 +820,11 @@ class _PaymentPageState extends State<PaymentPage> {
 
       debugPrint('💳 Processing payment: $_selectedPaymentMethod');
       debugPrint('💰 Final total: AED $finalTotal');
+      debugPrint('📦 Items to order: ${items.length}');
+      debugPrint('🏠 Shipping address: ${widget.orderData['shippingAddress']}');
 
       // STEP 1: Create order with 'pending' status
+      debugPrint('⏳ Creating order on backend...');
       final result = await orderService.createOrder(
         items: items,
         shippingAddress: widget.orderData['shippingAddress'],
@@ -732,8 +837,13 @@ class _PaymentPageState extends State<PaymentPage> {
             : null,
       );
 
+      debugPrint('📊 Order creation result: ${result['success']}');
+
       if (result['success'] != true) {
-        throw Exception('Order creation failed');
+        final errorMsg =
+            result['message'] ?? result['error'] ?? 'Order creation failed';
+        debugPrint('❌ Order creation failed: $errorMsg');
+        throw Exception(errorMsg);
       }
 
       final orderData = result['order'];
@@ -827,16 +937,40 @@ class _PaymentPageState extends State<PaymentPage> {
           _isProcessing = false;
         });
 
+        // Determine user-friendly error message
+        String errorMessage =
+            'Unable to process your payment. Please try again.';
+        bool showRetry = true;
+
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('token') ||
+            errorStr.contains('session') ||
+            errorStr.contains('auth')) {
+          errorMessage =
+              'Your session has expired. Please log in again to complete your order.';
+          showRetry = false;
+        } else if (errorStr.contains('network') ||
+            errorStr.contains('connection')) {
+          errorMessage =
+              'Network error. Please check your internet connection and try again.';
+        } else if (errorStr.contains('stripe') ||
+            errorStr.contains('payment')) {
+          errorMessage =
+              'Payment processing failed. Please verify your payment details and try again.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Payment failed: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Retry',
-              textColor: Colors.white,
-              onPressed: _processPayment,
-            ),
+            duration: const Duration(seconds: 6),
+            action: showRetry
+                ? SnackBarAction(
+                    label: 'Retry',
+                    textColor: Colors.white,
+                    onPressed: _processPayment,
+                  )
+                : null,
           ),
         );
       }

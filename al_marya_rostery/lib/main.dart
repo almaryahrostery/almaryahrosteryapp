@@ -50,19 +50,13 @@ void main() async {
   // Initialize network manager
   await NetworkManager().initialize();
 
-  // Initialize Stripe by fetching key from backend
-  try {
-    final stripeKey = await ConfigService.getStripePublishableKey();
-    Stripe.publishableKey = stripeKey;
-    if (kDebugMode) {
-      print('✅ Stripe initialized with key from backend');
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      print('❌ Failed to initialize Stripe: $e');
-    }
-    // App will still launch but payment features won't work
+  // Skip Stripe initialization at app launch to speed up startup
+  // Stripe key will be fetched lazily when user enters checkout
+  if (kDebugMode) {
+    print('⏭️  Skipping Stripe initialization at launch (will load on-demand)');
   }
+
+  // Initialize Firebase with error handling
 
   // Initialize Firebase with error handling
   bool firebaseInitialized = false;

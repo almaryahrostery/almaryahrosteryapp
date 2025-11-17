@@ -80,15 +80,17 @@ class AuthTokenService {
 
   /// Get current access token, refreshing if necessary
   ///
-  /// 🛡️ ROBUST TOKEN RETRIEVAL:
+  /// 🛡️ BACKEND JWT TOKEN MANAGEMENT:
   /// 1. Loads from storage if needed
-  /// 2. Checks Firebase for fresh token
-  /// 3. Proactively refreshes if <5min to expiry
-  /// 4. Falls back to refresh token if needed
-  /// 5. Never returns expired token
+  /// 2. Returns backend JWT token (expires in 30 days)
+  /// 3. NO Firebase token refresh - backend expects its own JWT!
   ///
-  /// [forceRefresh] - Force token refresh even if not expired
-  /// Returns null if no token available or refresh fails
+  /// Note: Backend JWT tokens are long-lived (30 days) and don't need
+  /// frequent refresh like Firebase tokens. They are issued by the backend
+  /// during login and validated using JWT_SECRET, not Firebase.
+  ///
+  /// [forceRefresh] - Force token refresh (currently ignored for backend JWT)
+  /// Returns null if no token available
   Future<String?> getAccessToken({bool forceRefresh = false}) async {
     try {
       // Load from storage if not in memory
@@ -96,30 +98,15 @@ class AuthTokenService {
         await _loadTokensFromStorage();
       }
 
-      // 🔥 CRITICAL: Always try to get fresh Firebase token first
-      final firebaseToken = await _getFirebaseToken(forceRefresh: forceRefresh);
-      if (firebaseToken != null) {
-        // Update our token with fresh Firebase token
-        await setTokens(accessToken: firebaseToken, expiresInSeconds: 3600);
-        return firebaseToken;
-      }
+      // ⚠️ IMPORTANT: Return backend JWT token, NOT Firebase token
+      // The backend /api/orders endpoint expects JWT tokens signed with JWT_SECRET
+      // Firebase ID tokens are only used for initial auth via /api/auth/google
 
-      // Check if token needs refresh (within 5 minutes of expiry)
-      final needsRefresh = forceRefresh || _shouldRefreshToken();
-
-      if (needsRefresh) {
+      if (_accessToken != null) {
         AppLogger.info(
-          '🔄 Token needs refresh (${_tokenExpiry != null ? "expires in ${_tokenExpiry!.difference(DateTime.now()).inMinutes}min" : "no expiry"})',
+          '🎫 Returning backend JWT token (${_tokenExpiry != null ? "expires ${_tokenExpiry!.difference(DateTime.now()).inDays}d" : "no expiry"})',
           tag: 'AuthTokenService',
         );
-
-        final refreshed = await _refreshAccessToken();
-        if (!refreshed) {
-          AppLogger.warning(
-            'Token refresh failed, returning existing token',
-            tag: 'AuthTokenService',
-          );
-        }
       }
 
       return _accessToken;
