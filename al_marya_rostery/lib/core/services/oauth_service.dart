@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../constants/app_constants.dart';
 import 'auth_token_service.dart';
+import '../utils/error_handler.dart';
 
 /// OAuth Authentication Service
 /// Handles Google, Facebook, and Apple Sign In
@@ -111,12 +112,15 @@ class OAuthService {
       throw Exception(errorData['message'] ?? 'Backend authentication failed');
     } on FirebaseAuthException catch (e) {
       _debugLog('❌ Firebase auth error: ${e.code} - ${e.message}');
-      return {'success': false, 'message': _getFirebaseErrorMessage(e.code)};
+      return {
+        'success': false,
+        'message': ErrorHandler.getUserFriendlyMessage(e),
+      };
     } catch (e) {
       _debugLog('❌ Google sign in error: $e');
       return {
         'success': false,
-        'message': e.toString().replaceAll('Exception: ', ''),
+        'message': ErrorHandler.getUserFriendlyMessage(e),
       };
     }
   }

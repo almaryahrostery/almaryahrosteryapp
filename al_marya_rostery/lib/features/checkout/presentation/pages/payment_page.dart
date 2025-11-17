@@ -7,6 +7,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/payment_service.dart';
 import '../../../../core/services/config_service.dart';
 import '../../../../core/services/auth_token_service.dart';
+import '../../../../core/utils/error_handler.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../data/services/order_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
@@ -937,41 +938,11 @@ class _PaymentPageState extends State<PaymentPage> {
           _isProcessing = false;
         });
 
-        // Determine user-friendly error message
-        String errorMessage =
-            'Unable to process your payment. Please try again.';
-        bool showRetry = true;
-
-        final errorStr = e.toString().toLowerCase();
-        if (errorStr.contains('token') ||
-            errorStr.contains('session') ||
-            errorStr.contains('auth')) {
-          errorMessage =
-              'Your session has expired. Please log in again to complete your order.';
-          showRetry = false;
-        } else if (errorStr.contains('network') ||
-            errorStr.contains('connection')) {
-          errorMessage =
-              'Network error. Please check your internet connection and try again.';
-        } else if (errorStr.contains('stripe') ||
-            errorStr.contains('payment')) {
-          errorMessage =
-              'Payment processing failed. Please verify your payment details and try again.';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 6),
-            action: showRetry
-                ? SnackBarAction(
-                    label: 'Retry',
-                    textColor: Colors.white,
-                    onPressed: _processPayment,
-                  )
-                : null,
-          ),
+        // Use centralized error handler for better UX
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          onRetry: ErrorHandler.isRetryable(e) ? _processPayment : null,
         );
       }
     }
