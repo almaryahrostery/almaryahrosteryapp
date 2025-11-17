@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../network/api_client.dart';
@@ -80,17 +82,17 @@ class AuthTokenService {
 
   /// Get current access token, refreshing if necessary
   ///
-  /// 🛡️ BACKEND JWT TOKEN MANAGEMENT:
+  /// 🛡️ BACKEND JWT TOKEN MANAGEMENT WITH AUTO-REFRESH:
   /// 1. Loads from storage if needed
-  /// 2. Returns backend JWT token (expires in 30 days)
-  /// 3. NO Firebase token refresh - backend expects its own JWT!
+  /// 2. Auto-refreshes via Firebase if expired
+  /// 3. Returns backend JWT token (expires in 30 days)
   ///
-  /// Note: Backend JWT tokens are long-lived (30 days) and don't need
-  /// frequent refresh like Firebase tokens. They are issued by the backend
-  /// during login and validated using JWT_SECRET, not Firebase.
+  /// Note: Backend JWT tokens are long-lived (30 days) but if expired,
+  /// we silently get a new Firebase token and exchange it for a fresh JWT.
+  /// This provides seamless UX without forcing logout.
   ///
-  /// [forceRefresh] - Force token refresh (currently ignored for backend JWT)
-  /// Returns null if no token available
+  /// [forceRefresh] - Force token refresh
+  /// Returns null if no token available and user not signed in
   Future<String?> getAccessToken({bool forceRefresh = false}) async {
     try {
       // Load from storage if not in memory
@@ -98,22 +100,35 @@ class AuthTokenService {
         await _loadTokensFromStorage();
       }
 
-      // ⚠️ IMPORTANT: Check if token is expired and clear if so
+      // 🔄 AUTO-REFRESH: Silently refresh expired tokens
       if (_accessToken != null && _tokenExpiry != null) {
-        if (DateTime.now().isAfter(_tokenExpiry!)) {
-          AppLogger.warning(
-            '🚫 Token expired, clearing. Please login again.',
+        if (DateTime.now().isAfter(_tokenExpiry!) || forceRefresh) {
+          AppLogger.info(
+            '🔄 Token expired, attempting silent refresh via Firebase...',
             tag: 'AuthTokenService',
           );
-          await clearTokens();
-          return null;
+
+          // Try to get fresh Firebase token and exchange for backend JWT
+          final freshToken = await _silentRefreshViaFirebase();
+          if (freshToken != null) {
+            AppLogger.success(
+              '✅ Token refreshed silently, user stays logged in!',
+              tag: 'AuthTokenService',
+            );
+            return freshToken;
+          } else {
+            // Only clear if Firebase user is not signed in
+            AppLogger.warning(
+              '⚠️ Cannot refresh - user not signed in. Please login.',
+              tag: 'AuthTokenService',
+            );
+            await clearTokens();
+            return null;
+          }
         }
       }
 
-      // ⚠️ IMPORTANT: Return backend JWT token, NOT Firebase token
-      // The backend /api/orders endpoint expects JWT tokens signed with JWT_SECRET
-      // Firebase ID tokens are only used for initial auth via /api/auth/google
-
+      // Return valid token
       if (_accessToken != null) {
         final daysRemaining = _tokenExpiry != null
             ? _tokenExpiry!.difference(DateTime.now()).inDays
@@ -133,6 +148,85 @@ class AuthTokenService {
       );
       return _accessToken; // Return what we have, even if potentially expired
     }
+  }
+
+  /// Silently refresh expired backend JWT using Firebase token
+  ///
+  /// This provides seamless token refresh without forcing logout.
+  /// Gets fresh Firebase ID token and exchanges it for new backend JWT.
+  Future<String?> _silentRefreshViaFirebase() async {
+    try {
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        AppLogger.warning(
+          'No Firebase user signed in for silent refresh',
+          tag: 'AuthTokenService',
+        );
+        return null;
+      }
+
+      // Get fresh Firebase ID token
+      final firebaseToken = await firebaseUser.getIdToken(true);
+      if (firebaseToken == null) {
+        AppLogger.error(
+          'Failed to get Firebase token for refresh',
+          tag: 'AuthTokenService',
+        );
+        return null;
+      }
+
+      AppLogger.info(
+        '🔄 Exchanging Firebase token for fresh backend JWT...',
+        tag: 'AuthTokenService',
+      );
+
+      // Exchange Firebase token for backend JWT via /api/auth/google
+      final response = await http.post(
+        Uri.parse('${_getBaseUrl()}/api/auth/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'idToken': firebaseToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          final backendToken = data['token'] as String;
+
+          // Save the new token
+          await setTokens(
+            accessToken: backendToken,
+            refreshToken: '',
+            expiresInSeconds: 2592000, // 30 days
+          );
+
+          AppLogger.success(
+            '✅ Silent refresh successful! New 30-day token obtained.',
+            tag: 'AuthTokenService',
+          );
+
+          return backendToken;
+        }
+      }
+
+      AppLogger.error(
+        'Failed to exchange Firebase token: ${response.statusCode}',
+        tag: 'AuthTokenService',
+      );
+      return null;
+    } catch (e) {
+      AppLogger.error(
+        'Error during silent refresh',
+        tag: 'AuthTokenService',
+        error: e,
+      );
+      return null;
+    }
+  }
+
+  /// Get base URL for API calls
+  String _getBaseUrl() {
+    // Import AppConstants or hardcode for now
+    return 'https://almaryahrostery.onrender.com';
   }
 
   /// Get fresh token from Firebase (most reliable source)
