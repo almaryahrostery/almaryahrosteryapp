@@ -4,43 +4,51 @@ A complete coffee delivery ecosystem built with Flutter and Node.js.
 
 ## 📱 Project Structure
 
+This repository contains the **customer mobile app** with integrated backend and cloud functions:
+
 ```
-Al Marya Rostery APP/
-├── al_marya_rostery/       # User mobile app (Customer)
-├── al_marya_staff_app/     # Staff management app
-├── al_marya_driver_app/    # Driver delivery app
-├── backend/                # Node.js Express API
-└── functions/              # Firebase Cloud Functions
+al_marya_rostery/ (GitHub repository)
+├── lib/                    # Flutter app source code
+│   ├── core/              # Core utilities, services, constants
+│   ├── data/              # Data layer (repositories, models)
+│   ├── features/          # Feature modules (auth, products, cart, orders)
+│   └── main.dart          # App entry point
+├── android/               # Android native code
+├── ios/                   # iOS native code
+├── backend/               # Node.js Express API
+│   ├── routes/           # API routes
+│   ├── models/           # MongoDB models
+│   ├── middleware/       # Auth & validation
+│   └── server.js         # Server entry point
+├── functions/             # Firebase Cloud Functions
+├── assets/                # Images, fonts, translations
+├── test/                  # Unit and widget tests
+└── pubspec.yaml          # Flutter dependencies
 ```
+
+> **Note:** Staff and Driver apps are maintained as separate repositories/projects.
 
 ## 🚀 Quick Start
 
-### User App
+### Customer App
 ```bash
 cd al_marya_rostery
 flutter pub get
 flutter run
 ```
 
-### Staff App
+### Backend (Local Development)
 ```bash
-cd al_marya_staff_app
-flutter pub get
-flutter run
-```
-
-### Driver App
-```bash
-cd al_marya_driver_app
-flutter pub get
-flutter run
-```
-
-### Backend
-```bash
-cd backend
+cd al_marya_rostery/backend
 npm install
 npm start
+```
+
+### Firebase Functions (Deploy)
+```bash
+cd al_marya_rostery/functions
+npm install
+firebase deploy --only functions
 ```
 
 ## 🛠️ Maintenance Scripts
