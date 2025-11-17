@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import '../core/theme/app_theme.dart';
-import '../core/widgets/app_bottom_nav_bar.dart';
 import '../core/services/order_cancellation_service.dart';
 import '../core/constants/app_constants.dart';
 import '../core/utils/error_handler.dart';
@@ -16,6 +15,7 @@ import '../models/cart.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 import '../core/utils/app_logger.dart';
 import '../core/services/order_tracking_service.dart';
+import '../core/services/auth_token_service.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -65,29 +65,53 @@ class _OrdersPageState extends State<OrdersPage>
 
       AppLogger.debug('📝 User authenticated: ${authProvider.user!.email}');
       AppLogger.debug('🔑 User ID: ${authProvider.user!.id}');
-      AppLogger.debug('🔥 Fetching Firebase ID token...');
 
-      // Get Firebase ID token for authentication
-      final firebaseUser = fb_auth.FirebaseAuth.instance.currentUser;
-      if (firebaseUser == null) {
-        throw Exception('Firebase user not found. Please login again.');
+      // 🔄 HYBRID AUTH: Try backend JWT first, fallback to Firebase ID token
+      String? token;
+      bool usedFirebaseToken = false;
+
+      // Try to get backend JWT token
+      try {
+        AppLogger.debug('🔥 Attempting to get backend JWT token...');
+        final tokenService = AuthTokenService();
+        token = await tokenService.getAccessToken();
+
+        if (token != null) {
+          AppLogger.success('✅ Backend JWT token obtained');
+        }
+      } catch (e) {
+        AppLogger.warning('⚠️ Could not get backend JWT: $e');
       }
 
-      final idToken = await firebaseUser.getIdToken();
-      if (idToken == null) {
-        throw Exception('Failed to get authentication token');
+      // Fallback to Firebase ID token if JWT not available
+      if (token == null) {
+        AppLogger.info('🔄 Falling back to Firebase ID token...');
+        final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+        if (firebaseUser != null) {
+          token = await firebaseUser.getIdToken();
+          usedFirebaseToken = true;
+          AppLogger.success('✅ Firebase ID token obtained');
+        }
       }
 
-      AppLogger.success('✅ Firebase ID token obtained');
+      if (token == null) {
+        throw Exception(
+          'Failed to get authentication token. Please login again.',
+        );
+      }
+
       AppLogger.debug(
         '📡 Fetching orders from: ${AppConstants.baseUrl}/api/users/me/orders',
+      );
+      AppLogger.debug(
+        '🔐 Using ${usedFirebaseToken ? "Firebase ID" : "Backend JWT"} token',
       );
 
       // Fetch user's orders from backend
       final response = await http.get(
         Uri.parse('${AppConstants.baseUrl}/api/users/me/orders'),
         headers: {
-          'Authorization': 'Bearer $idToken',
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       );
@@ -222,7 +246,6 @@ class _OrdersPageState extends State<OrdersPage>
         ),
       ),
       backgroundColor: const Color(0xFFF5F5F5),
-      bottomNavigationBar: const AppBottomNavBar(),
       body: !authProvider.isAuthenticated
           ? _buildGuestState()
           : _isLoading

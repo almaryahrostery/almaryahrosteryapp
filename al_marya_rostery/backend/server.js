@@ -168,8 +168,11 @@ app.use('/api/accessory-types', createCacheMiddleware({ ttl: 600 }), require('./
 app.use('/api/gift-sets', createCacheMiddleware({ ttl: 300 }), require('./routes/giftSets')); // 5 min cache
 
 // Non-cached routes (user-specific or frequently changing)
+// Order tracking with real-time updates
+app.use('/api/tracking', require('./routes/tracking')); // NEW: Real-time order tracking
 app.use('/api/orders', require('./routes/userOrders')); // User order management
 app.use('/api/wishlist', require('./routes/wishlist')); // User wishlist management
+app.use('/api/addresses', require('./routes/addresses')); // User address management
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/newsletters', require('./routes/newsletters'));
 app.use('/api/support-tickets', require('./routes/support'));
@@ -419,6 +422,23 @@ const startServer = async () => {
       console.log(`📊 Performance tracking: ENABLED`);
       console.log(`💾 In-memory cache: ENABLED`);
     });
+
+    // Initialize Socket.IO for real-time tracking
+    try {
+      const { initializeSocket } = require('./services/socketService');
+      const io = initializeSocket(server);
+      app.set('io', io);
+      console.log('🔌 Socket.IO initialized for real-time order tracking');
+    } catch (error) {
+      console.warn('⚠️ Socket.IO initialization failed:', error.message);
+      console.warn('   Real-time tracking features will be disabled');
+    }
+
+    // Initialize Socket.IO for real-time tracking
+    const { initializeSocket } = require('./services/socketService');
+    const io = initializeSocket(server);
+    app.set('io', io);
+    console.log('🔌 Socket.IO initialized for real-time tracking');
 
     // Handle server errors
     server.on('error', (error) => {

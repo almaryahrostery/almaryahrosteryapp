@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/constants/app_constants.dart';
+import 'hybrid_auth_service.dart';
 
 /// Profile service for managing user profile data and updates
 class ProfileService {
   final Dio _dio = Dio();
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final HybridAuthService _authService = HybridAuthService();
 
   ProfileService() {
     _dio.options.baseUrl = AppConstants.baseUrl;
@@ -18,7 +18,7 @@ class ProfileService {
   /// Get user profile data
   Future<Map<String, dynamic>> getUserProfile() async {
     try {
-      final token = await _storage.read(key: 'auth_token');
+      final token = await _authService.getToken();
       if (token == null) {
         throw Exception('No authentication token found');
       }
@@ -51,7 +51,7 @@ class ProfileService {
     Map<String, dynamic>? preferences,
   }) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
+      final token = await _authService.getToken();
       if (token == null) {
         throw Exception('No authentication token found');
       }
@@ -86,7 +86,7 @@ class ProfileService {
   /// Upload profile picture
   Future<String> uploadProfilePicture(File imageFile) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
+      final token = await _authService.getToken();
       if (token == null) {
         throw Exception('No authentication token found');
       }
@@ -124,7 +124,7 @@ class ProfileService {
   /// Update user preferences
   Future<void> updatePreferences(Map<String, dynamic> preferences) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
+      final token = await _authService.getToken();
       if (token == null) {
         throw Exception('No authentication token found');
       }
@@ -155,7 +155,7 @@ class ProfileService {
     required String newPassword,
   }) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
+      final token = await _authService.getToken();
       if (token == null) {
         throw Exception('No authentication token found');
       }
@@ -183,7 +183,7 @@ class ProfileService {
   /// Delete user account
   Future<void> deleteAccount(String password) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
+      final token = await _authService.getToken();
       if (token == null) {
         throw Exception('No authentication token found');
       }

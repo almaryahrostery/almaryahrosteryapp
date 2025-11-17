@@ -210,7 +210,7 @@ class _FiltersPageState extends State<FiltersPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/accessory-detail', arguments: filter);
+          Navigator.pushNamed(context, '/product-detail', arguments: filter);
         },
         borderRadius: BorderRadius.circular(12),
         child: Column(

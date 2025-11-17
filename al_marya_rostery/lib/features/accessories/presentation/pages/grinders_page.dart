@@ -210,7 +210,7 @@ class _GrindersPageState extends State<GrindersPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/accessory-detail', arguments: grinder);
+          Navigator.pushNamed(context, '/product-detail', arguments: grinder);
         },
         borderRadius: BorderRadius.circular(12),
         child: Column(

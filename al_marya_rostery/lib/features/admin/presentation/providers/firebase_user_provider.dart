@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../data/models/firebase_user_model.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/hybrid_auth_service.dart';
 
 /// Provider for Firebase User Management
 /// Single source of truth - all users stored in Firebase only
@@ -15,8 +15,7 @@ class FirebaseUserProvider with ChangeNotifier {
   int _totalPages = 1;
   int _totalUsers = 0;
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  String? _cachedAuthToken;
+  final HybridAuthService _authService = HybridAuthService();
 
   // Getters
   List<FirebaseUserModel> get firebaseUsers => _firebaseUsers;
@@ -28,26 +27,9 @@ class FirebaseUserProvider with ChangeNotifier {
 
   String get baseUrl => '${AppConstants.baseUrl}/api/admin';
 
-  // Load auth token from secure storage
-  Future<void> loadAuthToken() async {
-    try {
-      _cachedAuthToken = await _storage.read(key: 'auth_token');
-      debugPrint(
-        '🔑 Firebase Provider - Auth token loaded: ${_cachedAuthToken != null ? "YES" : "NO"}',
-      );
-    } catch (e) {
-      debugPrint('❌ Error loading auth token: $e');
-      _cachedAuthToken = null;
-    }
-  }
-
-  // Get headers with auth token
-  Map<String, String> _getHeaders() {
-    final headers = {'Content-Type': 'application/json'};
-    if (_cachedAuthToken != null) {
-      headers['Authorization'] = 'Bearer $_cachedAuthToken';
-    }
-    return headers;
+  /// Get headers with auth token (hybrid: JWT or Firebase)
+  Future<Map<String, String>> _getHeaders() async {
+    return await _authService.getAuthHeaders();
   }
 
   void _setLoading(bool loading) {
@@ -66,11 +48,6 @@ class FirebaseUserProvider with ChangeNotifier {
     _setError(null);
 
     try {
-      // Load auth token if not already loaded
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
       final Map<String, String> queryParams = {
         'page': page.toString(),
         'limit': limit.toString(),
@@ -81,7 +58,8 @@ class FirebaseUserProvider with ChangeNotifier {
       ).replace(queryParameters: queryParams);
 
       debugPrint('🔥 Fetching Firebase users from: $uri');
-      final response = await http.get(uri, headers: _getHeaders());
+      final headers = await _getHeaders();
+      final response = await http.get(uri, headers: headers);
 
       debugPrint('📡 Response status: ${response.statusCode}');
       debugPrint('📡 Response body: ${response.body}');
@@ -137,13 +115,10 @@ class FirebaseUserProvider with ChangeNotifier {
     _setError(null);
 
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.post(
         Uri.parse('$baseUrl/firebase-users/$uid/toggle-active'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -168,13 +143,10 @@ class FirebaseUserProvider with ChangeNotifier {
     _setError(null);
 
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.delete(
         Uri.parse('$baseUrl/firebase-users/$uid'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {

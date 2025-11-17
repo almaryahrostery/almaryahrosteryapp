@@ -207,7 +207,7 @@ class _MugsPageState extends State<MugsPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/accessory-detail', arguments: mug);
+          Navigator.pushNamed(context, '/product-detail', arguments: mug);
         },
         borderRadius: BorderRadius.circular(12),
         child: Column(

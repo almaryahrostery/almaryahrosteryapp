@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../data/models/admin_user_model.dart';
 import '../../data/models/user_statistics_model.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/hybrid_auth_service.dart';
 
 class AdminUserProvider with ChangeNotifier {
   List<AdminUser> _users = [];
@@ -18,8 +18,7 @@ class AdminUserProvider with ChangeNotifier {
   String _selectedRole = '';
   String _selectedStatus = '';
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  String? _cachedAuthToken;
+  final HybridAuthService _authService = HybridAuthService();
 
   // Getters
   List<AdminUser> get users => _users;
@@ -36,26 +35,9 @@ class AdminUserProvider with ChangeNotifier {
   // Base URL - Uses AppConstants for environment configuration
   String get baseUrl => '${AppConstants.baseUrl}/api/admin';
 
-  // Load auth token from secure storage
-  Future<void> loadAuthToken() async {
-    try {
-      _cachedAuthToken = await _storage.read(key: 'auth_token');
-      debugPrint(
-        '🔑 Auth token loaded: ${_cachedAuthToken != null ? "YES" : "NO"}',
-      );
-    } catch (e) {
-      debugPrint('❌ Error loading auth token: $e');
-      _cachedAuthToken = null;
-    }
-  }
-
-  // Get headers with auth token
-  Map<String, String> _getHeaders() {
-    final headers = {'Content-Type': 'application/json'};
-    if (_cachedAuthToken != null) {
-      headers['Authorization'] = 'Bearer $_cachedAuthToken';
-    }
-    return headers;
+  /// Get headers with auth token (hybrid: JWT or Firebase)
+  Future<Map<String, String>> _getHeaders() async {
+    return await _authService.getAuthHeaders();
   }
 
   void _setLoading(bool loading) {
@@ -80,11 +62,6 @@ class AdminUserProvider with ChangeNotifier {
     _setError(null);
 
     try {
-      // Load auth token if not already loaded
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
       final Map<String, String> queryParams = {
         'page': page.toString(),
         'limit': limit.toString(),
@@ -108,7 +85,8 @@ class AdminUserProvider with ChangeNotifier {
       ).replace(queryParameters: queryParams);
 
       debugPrint('🔍 Fetching users from: $uri');
-      final response = await http.get(uri, headers: _getHeaders());
+      final headers = await _getHeaders();
+      final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -134,15 +112,11 @@ class AdminUserProvider with ChangeNotifier {
     _setError(null);
 
     try {
-      // Load auth token if not already loaded
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
       debugPrint('🔍 Fetching user statistics from: $baseUrl/users/stats');
+      final headers = await _getHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/users/stats'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -164,14 +138,10 @@ class AdminUserProvider with ChangeNotifier {
     _setError(null);
 
     try {
-      // Load auth token if not already loaded
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.put(
         Uri.parse('$baseUrl/users/$userId'),
-        headers: _getHeaders(),
+        headers: headers,
         body: json.encode(updates),
       );
 
@@ -205,14 +175,10 @@ class AdminUserProvider with ChangeNotifier {
     _setError(null);
 
     try {
-      // Load auth token if not already loaded
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.delete(
         Uri.parse('$baseUrl/users/$userId'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -241,14 +207,10 @@ class AdminUserProvider with ChangeNotifier {
     _setError(null);
 
     try {
-      // Load auth token if not already loaded
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.put(
         Uri.parse('$baseUrl/users/bulk'),
-        headers: _getHeaders(),
+        headers: headers,
         body: json.encode({'userIds': userIds, 'updates': updates}),
       );
 

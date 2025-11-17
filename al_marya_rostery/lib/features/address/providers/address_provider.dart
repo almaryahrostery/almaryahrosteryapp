@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/user_address.dart';
+import '../services/address_api_service.dart';
 
 class AddressProvider extends ChangeNotifier {
   static const String _boxName = 'user_addresses';
@@ -9,6 +10,8 @@ class AddressProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool _isLoading = false;
   String? _error;
+
+  final AddressApiService _apiService = AddressApiService();
 
   // Getters
   List<UserAddress> get addresses => _addresses;
@@ -268,6 +271,165 @@ class AddressProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  // ===== BACKEND INTEGRATION METHODS =====
+
+  /// Load addresses from backend with optional distance calculation
+  Future<void> loadAddressesFromBackend({
+    double? latitude,
+    double? longitude,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final addresses = await _apiService.getUserAddresses(
+        latitude: latitude,
+        longitude: longitude,
+      );
+
+      _addresses = addresses;
+      _addresses.sort((a, b) {
+        if (a.isDefault && !b.isDefault) return -1;
+        if (!a.isDefault && b.isDefault) return 1;
+        return b.createdAt.compareTo(a.createdAt);
+      });
+
+      // Also sync to local Hive for offline access
+      if (_addressBox != null) {
+        await _addressBox!.clear();
+        for (var address in _addresses) {
+          await _addressBox!.put(address.id, address);
+        }
+      }
+
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('❌ Error loading addresses from backend: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Create address in backend
+  Future<bool> createAddressInBackend(UserAddress address) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final createdAddress = await _apiService.createAddress(address);
+      _addresses.insert(0, createdAddress);
+
+      // Also save to local Hive
+      if (_addressBox != null) {
+        await _addressBox!.put(createdAddress.id, createdAddress);
+      }
+
+      _error = null;
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('❌ Error creating address: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Update address in backend
+  Future<bool> updateAddressInBackend(UserAddress address) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final updatedAddress = await _apiService.updateAddress(address);
+      final index = _addresses.indexWhere((a) => a.id == address.id);
+      if (index != -1) {
+        _addresses[index] = updatedAddress;
+      }
+
+      // Also update in local Hive
+      if (_addressBox != null) {
+        await _addressBox!.put(updatedAddress.id, updatedAddress);
+      }
+
+      _error = null;
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('❌ Error updating address: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete address from backend
+  Future<bool> deleteAddressFromBackend(String addressId) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final success = await _apiService.deleteAddress(addressId);
+      if (success) {
+        _addresses.removeWhere((a) => a.id == addressId);
+
+        // Also delete from local Hive
+        if (_addressBox != null) {
+          await _addressBox!.delete(addressId);
+        }
+      }
+
+      _error = null;
+      return success;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('❌ Error deleting address: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Set address as default in backend
+  Future<bool> setDefaultAddressInBackend(String addressId) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      await _apiService.setDefaultAddress(addressId);
+
+      // Update local state
+      for (var addr in _addresses) {
+        addr.isDefault = addr.id == addressId;
+        if (_addressBox != null) {
+          await _addressBox!.put(addr.id, addr);
+        }
+      }
+
+      _addresses.sort((a, b) {
+        if (a.isDefault && !b.isDefault) return -1;
+        if (!a.isDefault && b.isDefault) return 1;
+        return b.createdAt.compareTo(a.createdAt);
+      });
+
+      _error = null;
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('❌ Error setting default address: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // Close box when provider is disposed

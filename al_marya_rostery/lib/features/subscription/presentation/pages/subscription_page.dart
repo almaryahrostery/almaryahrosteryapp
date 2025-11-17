@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../../../widgets/common/app_drawer.dart';
 import '../../../../data/datasources/remote/subscriptions_api_service.dart';
 
@@ -77,7 +76,6 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         elevation: 2,
       ),
       drawer: const AppDrawer(),
-      bottomNavigationBar: const AppBottomNavBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

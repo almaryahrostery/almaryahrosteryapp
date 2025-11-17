@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const admin = require('firebase-admin');
 const User = require('../models/User');
 const { isBlacklisted } = require('../utils/tokenBlacklist');
 
@@ -13,7 +14,8 @@ if (process.env.JWT_SECRET.length < 32) {
   console.error('WARNING: JWT_SECRET is too short. Use at least 32 characters for security.');
 }
 
-// Protect routes - require authentication
+// 🔄 HYBRID AUTH: Accepts both Firebase ID tokens and Backend JWT tokens
+// This ensures backward compatibility and seamless migration
 const protect = async (req, res, next) => {
   try {
     let token;
@@ -31,27 +33,51 @@ const protect = async (req, res, next) => {
     }
 
     try {
-      // Security: Additional JWT_SECRET validation before verification
-      if (!process.env.JWT_SECRET) {
-        console.error('JWT_SECRET missing during token verification');
-        return res.status(500).json({
-          success: false,
-          message: 'Server configuration error'
-        });
+      // 🔍 STEP 1: Try to verify as Backend JWT token first
+      let decoded;
+      let isFirebaseToken = false;
+      
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // Security: Check if token has been blacklisted (revoked)
+        if (isBlacklisted(token)) {
+          return res.status(401).json({
+            success: false,
+            message: 'Token has been revoked. Please login again.'
+          });
+        }
+        
+        console.log('✅ Backend JWT token verified');
+      } catch (jwtError) {
+        // 🔍 STEP 2: If JWT verification fails, try Firebase ID token
+        console.log('⚠️ Not a backend JWT, trying Firebase ID token...');
+        
+        try {
+          const firebaseDecoded = await admin.auth().verifyIdToken(token);
+          console.log('✅ Firebase ID token verified:', firebaseDecoded.email);
+          
+          // Convert Firebase token data to our format
+          decoded = {
+            userId: firebaseDecoded.uid,
+            email: firebaseDecoded.email,
+            isFirebaseToken: true
+          };
+          isFirebaseToken = true;
+        } catch (firebaseError) {
+          console.error('❌ Token verification failed (both JWT and Firebase):', {
+            jwtError: jwtError.message,
+            firebaseError: firebaseError.message
+          });
+          
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid token format'
+          });
+        }
       }
 
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Security: Check if token has been blacklisted (revoked)
-      if (isBlacklisted(token)) {
-        return res.status(401).json({
-          success: false,
-          message: 'Token has been revoked. Please login again.'
-        });
-      }
-
-      // Handle admin tokens specially - check BEFORE any database queries
+      // 🔍 STEP 3: Handle admin tokens
       if (decoded.userId === 'admin' || decoded.role === 'admin') {
         req.user = {
           userId: 'admin',
@@ -62,22 +88,47 @@ const protect = async (req, res, next) => {
         return next();
       }
 
-      // Get user from token for regular users
-      // Only proceed if userId looks like a valid MongoDB ObjectId
-      if (!decoded.userId || decoded.userId === 'admin') {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid token format'
+      // 🔍 STEP 4: Find user in database
+      let user;
+      
+      if (isFirebaseToken) {
+        // For Firebase tokens, search by Firebase UID or email
+        user = await User.findOne({
+          $or: [
+            { firebaseUid: decoded.userId },
+            { providerId: decoded.userId },
+            { email: decoded.email }
+          ]
         });
-      }
+        
+        if (!user) {
+          console.error('❌ User not found for Firebase UID:', decoded.userId);
+          return res.status(401).json({
+            success: false,
+            message: 'User not found. Please login again.'
+          });
+        }
+        
+        console.log(`✅ User found via Firebase token: ${user.email} (ID: ${user._id})`);
+      } else {
+        // For backend JWT tokens, search by user ID
+        if (!decoded.userId || decoded.userId === 'admin') {
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid token format'
+          });
+        }
 
-      const user = await User.findById(decoded.userId);
+        user = await User.findById(decoded.userId);
 
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: 'User not found'
-        });
+        if (!user) {
+          return res.status(401).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+        
+        console.log(`✅ User found via JWT token: ${user.email} (ID: ${user._id})`);
       }
 
       // Check if user is active
@@ -97,8 +148,8 @@ const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
-      // Security: Log JWT verification errors for monitoring
-      console.error('JWT verification failed:', {
+      // Security: Log verification errors for monitoring
+      console.error('Auth middleware error:', {
         error: error.message,
         token: token?.substring(0, 20) + '...', // Log only first 20 chars for debugging
         timestamp: new Date().toISOString()

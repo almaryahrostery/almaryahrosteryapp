@@ -19,7 +19,7 @@ import '../features/cart/presentation/pages/cart_page.dart';
 import '../features/cart/presentation/pages/guest_checkout_page.dart';
 import '../features/checkout/presentation/pages/checkout_page.dart';
 import '../features/checkout/presentation/pages/order_confirmation_page.dart';
-import '../features/checkout/presentation/pages/order_tracking_page.dart';
+import '../features/tracking/screens/tracking_page.dart';
 import '../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../features/admin/presentation/pages/admin_orders_page.dart';
 import '../features/admin/presentation/pages/firebase_users_page.dart';
@@ -27,7 +27,7 @@ import '../features/search/presentation/pages/search_results_page.dart';
 import '../features/account/presentation/pages/account_settings_page.dart';
 import '../features/account/presentation/pages/edit_profile_page.dart';
 import '../features/account/presentation/pages/change_password_page.dart';
-import '../features/account/presentation/pages/address_management_page.dart';
+import '../features/address/screens/enhanced_addresses_page.dart';
 import '../features/account/presentation/pages/payment_methods_page.dart';
 import '../features/coffee/presentation/pages/category_browse_page.dart';
 import '../features/coffee/presentation/pages/filter_sort_page.dart';
@@ -57,8 +57,6 @@ import '../features/coffee/presentation/pages/coffee_blends_page.dart';
 // import '../features/coffee/presentation/pages/coffee_africa_page.dart';
 // import '../features/coffee/presentation/pages/coffee_latin_america_page.dart';
 import '../features/brewing_methods/presentation/pages/brewing_methods_page.dart';
-import '../features/brewing_methods/presentation/pages/brewing_method_detail_page.dart';
-import '../features/brewing_methods/data/brewing_method_model.dart';
 // import '../features/coffee/presentation/pages/featured_products_page.dart'; // REMOVED: Using CategoryBrowsePage now
 import '../features/coffee/presentation/pages/best_sellers_page.dart';
 import '../features/coffee/presentation/pages/new_arrivals_page.dart';
@@ -72,8 +70,6 @@ import '../features/brewing_methods/presentation/pages/espresso_brewing_page.dar
 import '../features/accessories/presentation/pages/grinders_page.dart';
 import '../features/accessories/presentation/pages/mugs_page.dart';
 import '../features/accessories/presentation/pages/filters_page.dart';
-import '../features/accessories/presentation/pages/accessory_detail_page.dart';
-import '../features/accessories/data/accessory_model.dart';
 // Import new gift pages
 import '../features/gifts/presentation/pages/gift_sets_product_page.dart';
 import '../features/navigation/presentation/pages/persistent_navigation_wrapper.dart';
@@ -279,17 +275,26 @@ class AppRouter {
         );
 
       case '/order-tracking':
-        final orderNumber = settings.arguments as String?;
-        if (orderNumber == null) {
+        // Support both old format (String orderNumber) and new format (Map with orderId)
+        final dynamic args = settings.arguments;
+        String? orderId;
+
+        if (args is Map<String, dynamic>) {
+          orderId = args['orderId'] as String?;
+        } else if (args is String) {
+          // Legacy support - treat string as order number
+          orderId = args;
+        }
+
+        if (orderId == null) {
           return _buildRoute(
-            _buildErrorPage('Order number not provided'),
+            _buildErrorPage('Order ID not provided'),
             settings: settings,
           );
         }
-        return _buildRoute(
-          OrderTrackingPage(orderNumber: orderNumber),
-          settings: settings,
-        );
+
+        // Use new advanced TrackingPage with real-time updates
+        return _buildRoute(TrackingPage(orderId: orderId), settings: settings);
 
       case '/product':
         AppLogger.debug('🔍 App Router: /product route called');
@@ -317,7 +322,7 @@ class AppRouter {
           AppLogger.debug(
             '✅ App Router: Creating ProductDetailPage with product: ${product.name}',
           );
-          return _buildRouteWithPersistentNav(
+          return _buildRoute(
             ProductDetailPage(product: product),
             settings: settings,
           );
@@ -402,7 +407,7 @@ class AppRouter {
 
       case '/address-management':
         return _buildRoute(
-          const EmailVerificationGuard(child: AddressManagementPage()),
+          const EmailVerificationGuard(child: EnhancedAddressesPage()),
           settings: settings,
         );
 
@@ -530,13 +535,6 @@ class AppRouter {
           settings: settings,
         );
 
-      case '/brewing-method-detail':
-        final brewingMethod = settings.arguments as BrewingMethod;
-        return _buildRouteWithPersistentNav(
-          BrewingMethodDetailPage(brewingMethod: brewingMethod),
-          settings: settings,
-        );
-
       case '/featured-products':
         // Unified: Use CategoryBrowsePage with 'Featured' filter
         return _buildRouteWithPersistentNav(
@@ -615,13 +613,6 @@ class AppRouter {
       case '/accessories/filters':
         return _buildRouteWithPersistentNav(
           const FiltersPage(),
-          settings: settings,
-        );
-
-      case '/accessory-detail':
-        final accessory = settings.arguments as Accessory;
-        return _buildRoute(
-          AccessoryDetailPage(accessory: accessory),
           settings: settings,
         );
 

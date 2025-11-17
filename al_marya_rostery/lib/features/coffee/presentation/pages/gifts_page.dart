@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../../../widgets/common/app_drawer.dart';
 import '../../../../providers/gift_set_provider.dart';
 import '../../../../data/models/gift_set_model.dart';
@@ -40,7 +39,6 @@ class _GiftsPageState extends State<GiftsPage> {
         elevation: 2,
       ),
       drawer: const AppDrawer(),
-      bottomNavigationBar: const AppBottomNavBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

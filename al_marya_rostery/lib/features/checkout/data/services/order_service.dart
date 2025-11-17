@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/services/auth_token_service.dart';
+import '../../../../core/services/hybrid_auth_service.dart';
 
 /// Order Service - Handles all order-related API calls
 ///
@@ -14,21 +14,16 @@ import '../../../../core/services/auth_token_service.dart';
 ///
 /// This ensures seamless user experience even with expired tokens.
 class OrderService {
-  final AuthTokenService _tokenService = AuthTokenService();
+  final HybridAuthService _authService = HybridAuthService();
 
   String get baseUrl => '${AppConstants.baseUrl}/api';
 
   /// Public getter for auth token (for payment integration)
-  Future<String?> get authToken async => await _tokenService.getAccessToken();
+  Future<String?> get authToken async => await _authService.getToken();
 
-  /// Get headers with auth token
+  /// Get headers with auth token (hybrid: JWT or Firebase)
   Future<Map<String, String>> _getHeaders() async {
-    final headers = {'Content-Type': 'application/json'};
-    final token = await _tokenService.getAccessToken();
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-    return headers;
+    return await _authService.getAuthHeaders();
   }
 
   /// Create a new order
@@ -53,7 +48,7 @@ class OrderService {
 
       // 🔥 CRITICAL: Get fresh token BEFORE creating order
       debugPrint('🔐 Ensuring fresh authentication token...');
-      await _tokenService.getAccessToken(forceRefresh: true);
+      await _authService.getToken();
 
       return await _attemptCreateOrder(
         items: items,
@@ -74,8 +69,8 @@ class OrderService {
         );
 
         try {
-          // Force refresh token from Firebase
-          await _tokenService.getAccessToken(forceRefresh: true);
+          // Force refresh token (hybrid method)
+          await _authService.getToken(forceRefresh: true);
 
           debugPrint(
             '✅ Token refreshed successfully, retrying order creation...',
@@ -186,7 +181,7 @@ class OrderService {
       debugPrint('📦 Fetching user orders from: $baseUrl/orders/my-orders');
 
       // Ensure fresh token
-      await _tokenService.getAccessToken();
+      await _authService.getToken();
 
       final headers = await _getHeaders();
       final response = await http.get(
@@ -209,7 +204,7 @@ class OrderService {
       } else if (response.statusCode == 401) {
         // Auto-retry with fresh token
         debugPrint('🔄 401 error, refreshing token and retrying...');
-        await _tokenService.getAccessToken(forceRefresh: true);
+        await _authService.getToken(forceRefresh: true);
 
         final retryHeaders = await _getHeaders();
         final retryResponse = await http.get(
@@ -241,7 +236,7 @@ class OrderService {
       debugPrint('📦 Fetching order details: $orderId');
 
       // Ensure fresh token
-      await _tokenService.getAccessToken();
+      await _authService.getToken();
 
       final headers = await _getHeaders();
       final response = await http.get(
@@ -261,7 +256,7 @@ class OrderService {
       } else if (response.statusCode == 401) {
         // Auto-retry with fresh token
         debugPrint('🔄 401 error, refreshing token and retrying...');
-        await _tokenService.getAccessToken(forceRefresh: true);
+        await _authService.getToken(forceRefresh: true);
 
         final retryHeaders = await _getHeaders();
         final retryResponse = await http.get(

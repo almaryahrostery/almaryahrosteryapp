@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_stripe/flutter_stripe.dart';
 import '../constants/app_constants.dart';
-import 'auth_token_service.dart';
+import 'hybrid_auth_service.dart';
 
 /// Service for handling Stripe payment integration
 class PaymentService {
   static String get _baseUrl => '${AppConstants.baseUrl}/api';
-  final AuthTokenService _tokenService = AuthTokenService();
+  final HybridAuthService _authService = HybridAuthService();
 
   /// Create a payment intent for an order
   /// Returns the client secret needed for Stripe payment sheet
@@ -19,8 +19,8 @@ class PaymentService {
     try {
       debugPrint('🔐 Creating payment intent for order: $orderId');
 
-      // Get fresh token from token service (auto-refreshes if needed)
-      final token = authToken ?? await _tokenService.getAccessToken();
+      // Get fresh token from hybrid auth service (auto-refreshes if needed)
+      final token = authToken ?? await _authService.getToken();
 
       if (token == null) {
         debugPrint('❌ No authentication token available');

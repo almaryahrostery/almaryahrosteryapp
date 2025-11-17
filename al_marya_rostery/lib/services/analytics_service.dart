@@ -1,33 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/constants/app_constants.dart';
+import '../core/services/hybrid_auth_service.dart';
 
 /// Analytics Service - Fetches analytics data from backend
 class AnalyticsService {
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  String? _cachedAuthToken;
+  final HybridAuthService _authService = HybridAuthService();
 
   String get baseUrl => '${AppConstants.baseUrl}/api';
 
-  /// Load auth token from secure storage
-  Future<void> loadAuthToken() async {
-    try {
-      _cachedAuthToken = await _storage.read(key: 'auth_token');
-    } catch (e) {
-      debugPrint('❌ Error loading auth token: $e');
-      _cachedAuthToken = null;
-    }
-  }
-
-  /// Get headers with auth token
-  Map<String, String> _getHeaders() {
-    final headers = {'Content-Type': 'application/json'};
-    if (_cachedAuthToken != null) {
-      headers['Authorization'] = 'Bearer $_cachedAuthToken';
-    }
-    return headers;
+  /// Get headers with auth token (hybrid: JWT or Firebase)
+  Future<Map<String, String>> _getHeaders() async {
+    return await _authService.getAuthHeaders();
   }
 
   /// Get top selling products
@@ -36,15 +21,12 @@ class AnalyticsService {
     String period = '7d',
   }) async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.get(
         Uri.parse(
           '$baseUrl/analytics/top-products?limit=$limit&period=$period',
         ),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -67,13 +49,10 @@ class AnalyticsService {
     String period = '7d',
   }) async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/analytics/customers?period=$period'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -95,13 +74,10 @@ class AnalyticsService {
     String period = '7d',
   }) async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/analytics/performance?period=$period'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -123,13 +99,10 @@ class AnalyticsService {
     String period = '7d',
   }) async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/analytics/overview?period=$period'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {

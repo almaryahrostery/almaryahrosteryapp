@@ -9,6 +9,9 @@ class AppConstants {
       ? 'https://almaryahrostery.onrender.com' // Production Render.com backend (connects to MongoDB Atlas)
       : 'http://192.168.0.148:5001'; // Local development backend (use your computer's IP, not localhost)
 
+  // Socket.IO URL for real-time tracking (same as base URL)
+  static String? get socketUrl => baseUrl;
+
   // Environment info for debugging
   static String get environment => _useProduction
       ? 'Production (Render.com → MongoDB Atlas)'

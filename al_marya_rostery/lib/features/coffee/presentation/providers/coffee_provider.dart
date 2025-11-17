@@ -30,7 +30,6 @@ class CoffeeProvider with ChangeNotifier {
   // Initialize the provider
   Future<void> _init() async {
     try {
-      await _coffeeApiService.init();
       await loadCoffees();
       await loadCategories();
       debugPrint('✅ Successfully loaded data from backend');

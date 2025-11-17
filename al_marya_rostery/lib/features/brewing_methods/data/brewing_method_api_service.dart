@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'brewing_method_model.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/hybrid_auth_service.dart';
 
 class BrewingMethodApiService {
+  final HybridAuthService _authService = HybridAuthService();
   static String get baseUrl => '${AppConstants.baseUrl}/api';
 
   /// Fetch all brewing methods
@@ -149,17 +151,12 @@ class BrewingMethodApiService {
   /// Rate a brewing method (requires authentication)
   Future<Map<String, double>> rateBrewingMethod(
     String methodId,
-    int rating, {
-    String? authToken,
-  }) async {
+    int rating,
+  ) async {
     try {
       final uri = Uri.parse('$baseUrl/brewing-methods/$methodId/rate');
 
-      final headers = <String, String>{'Content-Type': 'application/json'};
-
-      if (authToken != null) {
-        headers['Authorization'] = 'Bearer $authToken';
-      }
+      final headers = await _authService.getAuthHeaders();
 
       final body = json.encode({'rating': rating});
 

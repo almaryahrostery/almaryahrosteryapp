@@ -1,48 +1,30 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/constants/app_constants.dart';
 import '../data/models/coffee_product_model.dart';
+import '../core/services/hybrid_auth_service.dart';
 
 /// Wishlist API Service - Manages user wishlist/favorites
 class WishlistApiService {
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  String? _cachedAuthToken;
+  final HybridAuthService _authService = HybridAuthService();
 
   String get baseUrl => '${AppConstants.baseUrl}/api';
 
-  /// Load auth token from secure storage
-  Future<void> loadAuthToken() async {
-    try {
-      _cachedAuthToken = await _storage.read(key: 'auth_token');
-    } catch (e) {
-      debugPrint('❌ Error loading auth token: $e');
-      _cachedAuthToken = null;
-    }
-  }
-
-  /// Get headers with auth token
-  Map<String, String> _getHeaders() {
-    final headers = {'Content-Type': 'application/json'};
-    if (_cachedAuthToken != null) {
-      headers['Authorization'] = 'Bearer $_cachedAuthToken';
-    }
-    return headers;
+  /// Get headers with auth token (hybrid: JWT or Firebase)
+  Future<Map<String, String>> _getHeaders() async {
+    return await _authService.getAuthHeaders();
   }
 
   /// Get user's wishlist
   Future<List<CoffeeProductModel>> getWishlist() async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
       debugPrint('📋 Fetching wishlist from: $baseUrl/wishlist');
 
+      final headers = await _getHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/wishlist'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       debugPrint('📡 Wishlist response status: ${response.statusCode}');
@@ -70,17 +52,14 @@ class WishlistApiService {
     String productType = 'Coffee',
   ]) async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
       debugPrint(
         '➕ Adding product to wishlist: $productId (type: $productType)',
       );
 
+      final headers = await _getHeaders();
       final response = await http.post(
         Uri.parse('$baseUrl/wishlist'),
-        headers: _getHeaders(),
+        headers: headers,
         body: json.encode({'productId': productId, 'productType': productType}),
       );
 
@@ -105,15 +84,12 @@ class WishlistApiService {
   /// Remove product from wishlist
   Future<bool> removeFromWishlist(String productId) async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
       debugPrint('➖ Removing product from wishlist: $productId');
 
+      final headers = await _getHeaders();
       final response = await http.delete(
         Uri.parse('$baseUrl/wishlist/$productId'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       debugPrint('📡 Remove from wishlist response: ${response.statusCode}');
@@ -136,13 +112,10 @@ class WishlistApiService {
   /// Check if product is in wishlist
   Future<bool> isInWishlist(String productId) async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/wishlist/check/$productId'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -170,13 +143,10 @@ class WishlistApiService {
   /// Get wishlist count
   Future<int> getWishlistCount() async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
+      final headers = await _getHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/wishlist/count'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -194,15 +164,12 @@ class WishlistApiService {
   /// Clear entire wishlist
   Future<bool> clearWishlist() async {
     try {
-      if (_cachedAuthToken == null) {
-        await loadAuthToken();
-      }
-
       debugPrint('🗑️ Clearing wishlist');
 
+      final headers = await _getHeaders();
       final response = await http.delete(
         Uri.parse('$baseUrl/wishlist/clear'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {

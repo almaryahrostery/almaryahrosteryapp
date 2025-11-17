@@ -1,17 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/hybrid_auth_service.dart';
 import '../models/coffee_product_model.dart';
 
 /// CoffeeApiService handles API calls for coffee products
 class CoffeeApiService {
   final Dio _dio;
-  final FlutterSecureStorage _secureStorage;
-  String? _cachedAuthToken;
+  final HybridAuthService _authService;
 
-  CoffeeApiService({Dio? dio, FlutterSecureStorage? secureStorage})
+  CoffeeApiService({Dio? dio, HybridAuthService? authService})
     : _dio =
           dio ??
           Dio(
@@ -33,12 +32,8 @@ class CoffeeApiService {
               validateStatus: (status) => status! < 500,
             ),
           ),
-      _secureStorage = secureStorage ?? const FlutterSecureStorage() {
+      _authService = authService ?? HybridAuthService() {
     _setupInterceptors();
-  }
-
-  Future<void> init() async {
-    await loadAuthToken();
   }
 
   void _setupInterceptors() {
@@ -60,9 +55,9 @@ class CoffeeApiService {
     _dio.interceptors.addAll([
       // Request interceptor for logging and auth headers
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          // Add auth token if available
-          final token = _getAuthToken();
+        onRequest: (options, handler) async {
+          // Add auth token if available (hybrid: JWT or Firebase)
+          final token = await _authService.getToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -117,19 +112,6 @@ class CoffeeApiService {
         },
       ),
     ]);
-  }
-
-  String? _getAuthToken() {
-    return _cachedAuthToken;
-  }
-
-  Future<void> loadAuthToken() async {
-    try {
-      _cachedAuthToken = await _secureStorage.read(key: 'auth_token');
-    } catch (e) {
-      debugPrint('Error loading auth token: $e');
-      _cachedAuthToken = null;
-    }
   }
 
   void _handleBadResponse(DioException error) {
@@ -365,28 +347,6 @@ class CoffeeApiService {
       );
       if (e is ApiException) rethrow;
       throw ApiException('Failed to fetch categories: $e');
-    }
-  }
-
-  // Method to update auth token (called after login)
-  Future<void> updateAuthToken(String token) async {
-    try {
-      await _secureStorage.write(key: 'auth_token', value: token);
-      _cachedAuthToken = token;
-      debugPrint('🔑 Auth token updated and cached');
-    } catch (e) {
-      debugPrint('Error storing auth token: $e');
-    }
-  }
-
-  // Method to clear auth token (called on logout)
-  Future<void> clearAuthToken() async {
-    try {
-      await _secureStorage.delete(key: 'auth_token');
-      _cachedAuthToken = null;
-      debugPrint('🔑 Auth token cleared');
-    } catch (e) {
-      debugPrint('Error clearing auth token: $e');
     }
   }
 }

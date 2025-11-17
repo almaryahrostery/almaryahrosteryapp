@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qahwat_al_emarat/features/cart/presentation/providers/cart_provider.dart';
+import 'package:qahwat_al_emarat/features/auth/presentation/providers/auth_provider.dart';
+import 'package:qahwat_al_emarat/features/address/providers/address_provider.dart';
 import 'package:qahwat_al_emarat/core/theme/theme_extensions.dart';
 
 class GuestCheckoutPage extends StatefulWidget {
@@ -28,6 +30,76 @@ class _GuestCheckoutPageState extends State<GuestCheckoutPage> {
     'Ras Al Khaimah',
     'Fujairah',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-fill user info if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserInfo();
+    });
+  }
+
+  void _loadUserInfo() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final addressProvider = Provider.of<AddressProvider>(
+      context,
+      listen: false,
+    );
+
+    final user = authProvider.user;
+    if (user != null) {
+      // Auto-fill user name
+      if (user.name.isNotEmpty) {
+        _nameController.text = user.name;
+      }
+
+      // Auto-fill email
+      if (user.email.isNotEmpty) {
+        _emailController.text = user.email;
+      }
+
+      // Auto-fill phone number if available
+      if (user.phone != null && user.phone!.isNotEmpty) {
+        _phoneController.text = user.phone!;
+      }
+
+      // Load default address if available
+      final defaultAddress = addressProvider.defaultAddress;
+      if (defaultAddress != null) {
+        _addressController.text = defaultAddress.formattedAddress;
+
+        // Fill city if available
+        if (defaultAddress.city.isNotEmpty) {
+          _cityController.text = defaultAddress.city;
+        }
+
+        // Fill emirate if available in the emirates list
+        if (defaultAddress.area.isNotEmpty) {
+          // Try to match area/emirate
+          final matchingEmirate = _emirates.firstWhere(
+            (e) => e.toLowerCase() == defaultAddress.area.toLowerCase(),
+            orElse: () => 'Dubai',
+          );
+          setState(() {
+            _selectedEmirate = matchingEmirate;
+          });
+        }
+
+        // Fill phone from address if not already filled from user
+        if (_phoneController.text.isEmpty &&
+            defaultAddress.contactNumber.isNotEmpty) {
+          _phoneController.text = defaultAddress.contactNumber;
+        }
+
+        // Fill name from address contact if not already filled
+        if (_nameController.text.isEmpty &&
+            defaultAddress.contactName.isNotEmpty) {
+          _nameController.text = defaultAddress.contactName;
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {

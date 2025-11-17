@@ -1,16 +1,18 @@
 import 'package:dio/dio.dart';
 import '../utils/app_logger.dart';
-import '../services/auth_token_service.dart';
+import '../services/hybrid_auth_service.dart';
 
 /// HTTP Interceptor for automatic authentication and token refresh
 ///
+/// 🔄 HYBRID AUTH: Uses both Backend JWT and Firebase ID tokens
+///
 /// Handles:
-/// - Automatic auth token injection in requests
+/// - Automatic auth token injection in requests (JWT preferred, Firebase fallback)
 /// - 401 error detection and automatic token refresh
 /// - Request retry after successful token refresh
 /// - Prevents cascading failures from expired tokens
 class AuthInterceptor extends Interceptor {
-  final AuthTokenService _tokenService = AuthTokenService();
+  final HybridAuthService _authService = HybridAuthService();
 
   // Track requests being retried to prevent infinite loops
   final Set<String> _retriedRequests = {};
@@ -21,13 +23,15 @@ class AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     try {
-      // Get fresh token (auto-refreshes if needed)
-      final token = await _tokenService.getAccessToken();
+      // 🔄 HYBRID: Get token (JWT preferred, Firebase fallback)
+      final result = await _authService.getAuthToken();
+      final token = result['token'] as String?;
+      final tokenType = result['tokenType'] as String;
 
       if (token != null) {
         options.headers['Authorization'] = 'Bearer $token';
         AppLogger.info(
-          'Auth token injected for ${options.method} ${options.path}',
+          'Auth token (${tokenType.toUpperCase()}) injected for ${options.method} ${options.path}',
           tag: 'AuthInterceptor',
         );
       } else {
@@ -74,8 +78,9 @@ class AuthInterceptor extends Interceptor {
       );
 
       try {
-        // Try to refresh the token
-        final refreshed = await _tokenService.refreshToken();
+        // Try to refresh token (hybrid method)
+        final result = await _authService.getAuthToken(forceRefresh: true);
+        final refreshed = result['token'] != null;
 
         if (refreshed) {
           AppLogger.success(
@@ -86,8 +91,8 @@ class AuthInterceptor extends Interceptor {
           // Mark this request as retried
           _retriedRequests.add(requestKey);
 
-          // Get new token
-          final newToken = await _tokenService.getAccessToken();
+          // Get new token (hybrid method)
+          final newToken = await _authService.getToken();
 
           if (newToken != null) {
             // Clone the original request with new token

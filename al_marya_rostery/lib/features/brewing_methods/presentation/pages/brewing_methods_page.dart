@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_extensions.dart';
-import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../data/brewing_method_model.dart';
 import '../../data/brewing_method_api_service.dart';
-import 'brewing_method_detail_page.dart';
 import '../widgets/brewing_method_card.dart';
 import '../widgets/brewing_method_filter_bar.dart';
 
@@ -122,12 +120,7 @@ class _BrewingMethodsPageState extends State<BrewingMethodsPage>
   }
 
   void _navigateToDetail(BrewingMethod method) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BrewingMethodDetailPage(brewingMethod: method),
-      ),
-    );
+    Navigator.pushNamed(context, '/brewing-method-detail', arguments: method);
   }
 
   @override
@@ -160,7 +153,6 @@ class _BrewingMethodsPageState extends State<BrewingMethodsPage>
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNavBar(),
       body: TabBarView(
         controller: _tabController,
         children: [_buildAllMethodsTab(), _buildPopularMethodsTab()],

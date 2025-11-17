@@ -22,8 +22,7 @@ class _FirebaseUsersPageState extends State<FirebaseUsersPage> {
         context,
         listen: false,
       );
-      // ✅ FIX: Load auth token first, then fetch users
-      await provider.loadAuthToken();
+      // HybridAuthService automatically handles token loading
       await provider.fetchFirebaseUsers();
     });
   }

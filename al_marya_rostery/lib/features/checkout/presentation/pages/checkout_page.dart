@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../address/providers/address_provider.dart';
 import '../../../../services/reward_service.dart';
 import 'payment_page.dart';
 
@@ -71,10 +72,53 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   void _loadUserInfo() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final addressProvider = Provider.of<AddressProvider>(
+      context,
+      listen: false,
+    );
+
     final user = authProvider.user;
     if (user != null) {
+      // Auto-fill user name
       _nameController.text = user.name;
-      // Load saved address if available from user preferences
+
+      // Auto-fill phone number if available
+      if (user.phone != null && user.phone!.isNotEmpty) {
+        _phoneController.text = user.phone!;
+      }
+
+      // Load default address if available
+      final defaultAddress = addressProvider.defaultAddress;
+      if (defaultAddress != null) {
+        _addressController.text = defaultAddress.formattedAddress;
+
+        // Fill city if available
+        if (defaultAddress.city.isNotEmpty) {
+          _cityController.text = defaultAddress.city;
+        }
+
+        // Fill emirate if available in the emirates list
+        if (defaultAddress.area.isNotEmpty) {
+          // Try to match area/emirate
+          final matchingEmirate = _emirates.firstWhere(
+            (e) => e.toLowerCase() == defaultAddress.area.toLowerCase(),
+            orElse: () => _emirates.first,
+          );
+          _emirateController.text = matchingEmirate;
+        }
+
+        // Fill phone from address if not already filled from user
+        if (_phoneController.text.isEmpty &&
+            defaultAddress.contactNumber.isNotEmpty) {
+          _phoneController.text = defaultAddress.contactNumber;
+        }
+
+        // Fill name from address contact if not already filled
+        if (_nameController.text.isEmpty &&
+            defaultAddress.contactName.isNotEmpty) {
+          _nameController.text = defaultAddress.contactName;
+        }
+      }
     }
   }
 

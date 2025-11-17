@@ -47,6 +47,37 @@ class UserAddress extends HiveObject {
   @HiveField(13)
   late DateTime updatedAt;
 
+  // New fields for enhanced functionality
+  @HiveField(14)
+  late String area;
+
+  @HiveField(15)
+  late String city;
+
+  @HiveField(16)
+  late String flatNumber;
+
+  @HiveField(17)
+  late String floorNumber;
+
+  @HiveField(18)
+  late bool isVerified;
+
+  @HiveField(19)
+  late String addressType; // apartment, villa, office, other
+
+  @HiveField(20)
+  late String deliveryInstructions;
+
+  @HiveField(21)
+  late String contactName;
+
+  @HiveField(22)
+  late String contactNumber;
+
+  // Non-persistent field for distance calculation
+  double? distanceFromUser;
+
   UserAddress({
     String? id,
     required this.label,
@@ -62,10 +93,22 @@ class UserAddress extends HiveObject {
     this.isDefault = false,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.area = '',
+    this.city = 'Dubai',
+    this.flatNumber = '',
+    this.floorNumber = '',
+    this.isVerified = false,
+    this.addressType = 'apartment',
+    this.deliveryInstructions = '',
+    String? contactName,
+    String? contactNumber,
+    this.distanceFromUser,
   }) {
     this.id = id ?? const Uuid().v4();
     this.createdAt = createdAt ?? DateTime.now();
     this.updatedAt = updatedAt ?? DateTime.now();
+    this.contactName = contactName ?? receiverName;
+    this.contactNumber = contactNumber ?? phoneNumber;
   }
 
   // Copy with method for easy updates
@@ -84,6 +127,16 @@ class UserAddress extends HiveObject {
     bool? isDefault,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? area,
+    String? city,
+    String? flatNumber,
+    String? floorNumber,
+    bool? isVerified,
+    String? addressType,
+    String? deliveryInstructions,
+    String? contactName,
+    String? contactNumber,
+    double? distanceFromUser,
   }) {
     return UserAddress(
       id: id ?? this.id,
@@ -100,6 +153,16 @@ class UserAddress extends HiveObject {
       isDefault: isDefault ?? this.isDefault,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      area: area ?? this.area,
+      city: city ?? this.city,
+      flatNumber: flatNumber ?? this.flatNumber,
+      floorNumber: floorNumber ?? this.floorNumber,
+      isVerified: isVerified ?? this.isVerified,
+      addressType: addressType ?? this.addressType,
+      deliveryInstructions: deliveryInstructions ?? this.deliveryInstructions,
+      contactName: contactName ?? this.contactName,
+      contactNumber: contactNumber ?? this.contactNumber,
+      distanceFromUser: distanceFromUser ?? this.distanceFromUser,
     );
   }
 
@@ -107,8 +170,11 @@ class UserAddress extends HiveObject {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'title': label, // Backend uses 'title'
       'label': label,
+      'streetName': street, // Backend uses 'streetName'
       'street': street,
+      'buildingName': building, // Backend uses 'buildingName'
       'building': building,
       'apartment': apartment,
       'directions': directions,
@@ -120,23 +186,42 @@ class UserAddress extends HiveObject {
       'isDefault': isDefault,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'area': area,
+      'city': city,
+      'flatNumber': flatNumber,
+      'floorNumber': floorNumber,
+      'landmark': directions, // Map directions to landmark
+      'isVerified': isVerified,
+      'addressType': addressType,
+      'deliveryInstructions': deliveryInstructions,
+      'contactName': contactName,
+      'contactNumber': contactNumber,
+      'fullAddress': formattedAddress,
     };
   }
 
   // Create from JSON
   factory UserAddress.fromJson(Map<String, dynamic> json) {
     return UserAddress(
-      id: json['id'] as String?,
-      label: json['label'] as String,
-      street: json['street'] as String,
-      building: json['building'] as String? ?? '',
+      id: json['id'] as String? ?? json['_id'] as String?,
+      label: json['label'] as String? ?? json['title'] as String? ?? 'Other',
+      street: json['street'] as String? ?? json['streetName'] as String? ?? '',
+      building:
+          json['building'] as String? ?? json['buildingName'] as String? ?? '',
       apartment: json['apartment'] as String? ?? '',
-      directions: json['directions'] as String? ?? '',
+      directions:
+          json['directions'] as String? ?? json['landmark'] as String? ?? '',
       nickname: json['nickname'] as String? ?? '',
-      receiverName: json['receiverName'] as String,
-      phoneNumber: json['phoneNumber'] as String,
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      receiverName:
+          json['receiverName'] as String? ??
+          json['contactName'] as String? ??
+          '',
+      phoneNumber:
+          json['phoneNumber'] as String? ??
+          json['contactNumber'] as String? ??
+          '',
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
       isDefault: json['isDefault'] as bool? ?? false,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
@@ -144,6 +229,16 @@ class UserAddress extends HiveObject {
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'] as String)
           : null,
+      area: json['area'] as String? ?? '',
+      city: json['city'] as String? ?? 'Dubai',
+      flatNumber: json['flatNumber'] as String? ?? '',
+      floorNumber: json['floorNumber'] as String? ?? '',
+      isVerified: json['isVerified'] as bool? ?? false,
+      addressType: json['addressType'] as String? ?? 'apartment',
+      deliveryInstructions: json['deliveryInstructions'] as String? ?? '',
+      contactName: json['contactName'] as String?,
+      contactNumber: json['contactNumber'] as String?,
+      distanceFromUser: json['distanceFromUser'] as double?,
     );
   }
 
@@ -151,13 +246,25 @@ class UserAddress extends HiveObject {
   String get formattedAddress {
     final parts = <String>[];
 
-    if (apartment.isNotEmpty) {
+    if (flatNumber.isNotEmpty) {
+      parts.add('Flat $flatNumber');
+    }
+    if (floorNumber.isNotEmpty && flatNumber.isEmpty) {
+      parts.add('Floor $floorNumber');
+    }
+    if (apartment.isNotEmpty && flatNumber.isEmpty) {
       parts.add('Apt $apartment');
     }
     if (building.isNotEmpty) {
       parts.add(building);
     }
     parts.add(street);
+    if (area.isNotEmpty) {
+      parts.add(area);
+    }
+    if (city.isNotEmpty) {
+      parts.add(city);
+    }
 
     return parts.join(', ');
   }
@@ -166,6 +273,31 @@ class UserAddress extends HiveObject {
   String get shortAddress {
     if (nickname.isNotEmpty) return nickname;
     return formattedAddress;
+  }
+
+  // Get icon based on address type
+  String get icon {
+    switch (addressType) {
+      case 'apartment':
+        return 'apartment';
+      case 'villa':
+        return 'home';
+      case 'office':
+        return 'business';
+      default:
+        return 'location_on';
+    }
+  }
+
+  // Get formatted distance from user
+  String get formattedDistance {
+    if (distanceFromUser == null) return '';
+
+    if (distanceFromUser! < 1) {
+      return '${(distanceFromUser! * 1000).round()}m';
+    } else {
+      return '${distanceFromUser!.toStringAsFixed(1)}km';
+    }
   }
 
   @override
