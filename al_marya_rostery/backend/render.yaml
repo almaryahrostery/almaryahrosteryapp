@@ -80,11 +80,10 @@ services:
       
     autoDeploy: true
     
-    # Build settings
+    # Build settings - deploy on any backend changes
     buildFilter:
       paths:
-      - backend/**
-      - package.json
+      - ./**
       
     # Disk storage for uploads
     disk:
