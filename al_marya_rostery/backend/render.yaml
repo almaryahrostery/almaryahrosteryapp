@@ -1,0 +1,93 @@
+version: "1"
+services:
+  - type: web
+    name: al-marya-rostery-production
+    env: node
+    rootDir: backend
+    plan: standard # Upgraded from free for better performance
+    region: oregon # Choose closest region to your users
+    runtime: node20 # Updated to Node.js 20 for better performance
+    buildCommand: |
+      npm ci --only=production
+      node scripts/generateSecrets.js
+    startCommand: npm start
+    
+    # Enhanced health check configuration
+    healthCheckPath: /health
+    healthCheckTimeout: 30
+    
+    # Auto-scaling configuration
+    scaling:
+      minInstances: 1
+      maxInstances: 5
+      criteria:
+        cpu: 70
+        memory: 80
+      
+    # Environment variables (configure in Render Dashboard)
+    envVars:
+      # Core Configuration
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+        
+      # Performance & Monitoring
+      - key: ENABLE_METRICS
+        value: true
+      - key: LOG_LEVEL
+        value: info
+      - key: REQUEST_TIMEOUT
+        value: 30000
+        
+      # Database Connection Pool
+      - key: DB_CONNECTION_POOL_SIZE
+        value: 10
+      - key: DB_CONNECTION_TIMEOUT
+        value: 30000
+        
+      # IMPORTANT: Set these in Render Dashboard (DO NOT commit to Git):
+      # 
+      # REQUIRED Database Configuration:
+      # MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/YOUR_DATABASE?retryWrites=true&w=majority
+      #
+      # REQUIRED Security Configuration:
+      # JWT_SECRET=<64_CHAR_SECRET_FROM_GENERATOR>
+      # JWT_REFRESH_SECRET=<64_CHAR_SECRET_FROM_GENERATOR>
+      # ADMIN_PASSWORD=<STRONG_PASSWORD_FROM_GENERATOR>
+      #
+      # REQUIRED URLs:
+      # BASE_URL=https://qahwat-al-emarat-production.onrender.com
+      # FRONTEND_URL=https://yourdomain.com
+      #
+      # REQUIRED Firebase Configuration:
+      # FIREBASE_PROJECT_ID=qahwatapp
+      # FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
+      # FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@qahwatapp.iam.gserviceaccount.com
+      #
+      # REQUIRED Email Configuration:
+      # SMTP_HOST=in-v3.mailjet.com
+      # SMTP_PORT=587
+      # SMTP_SECURE=false
+      # SMTP_USER=<YOUR_MAILJET_USER>
+      # SMTP_PASS=<YOUR_MAILJET_PASSWORD>
+      # EMAIL_FROM_NAME=Al Marya Rostery
+      # EMAIL_FROM_ADDRESS=<YOUR_EMAIL>
+      #
+      # OPTIONAL Performance Tuning:
+      # RATE_LIMIT_WINDOW_MS=900000
+      # RATE_LIMIT_MAX_REQUESTS=100
+      # LOGIN_RATE_LIMIT_MAX=5
+      
+    autoDeploy: true
+    
+    # Build settings - deploy on any backend changes
+    buildFilter:
+      paths:
+      - ./**
+      
+    # Disk storage for uploads
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/backend/uploads
+      sizeGB: 1

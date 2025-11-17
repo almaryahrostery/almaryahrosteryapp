@@ -40,6 +40,7 @@ import 'core/network/network_manager.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'services/fcm_service.dart';
 import 'core/services/config_service.dart';
+import 'core/services/auth_token_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +50,20 @@ void main() async {
 
   // Initialize network manager
   await NetworkManager().initialize();
+
+  // 🔥 ONE-TIME FIX: Force clear all tokens to fix Firebase/Backend JWT mismatch
+  // Users must log in again to get proper backend JWT tokens (30 days)
+  try {
+    final authTokenService = AuthTokenService();
+    await authTokenService.clearTokens();
+    if (kDebugMode) {
+      print('🧹 Cleared all tokens - fresh login required for backend JWT');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('⚠️ Token clear failed: $e');
+    }
+  }
 
   // Skip Stripe initialization at app launch to speed up startup
   // Stripe key will be fetched lazily when user enters checkout
