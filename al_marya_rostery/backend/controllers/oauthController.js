@@ -80,10 +80,11 @@ exports.googleAuth = async (req, res) => {
       console.log(`✅ Existing user logged in via Google: ${email} (ID: ${user._id})`);
     }
 
-    // Generate JWT token
+    // Generate JWT token with correct payload structure
+    // Auth middleware expects 'userId', not 'id'
     const token = jwt.sign(
       { 
-        id: user._id,
+        userId: user._id,  // Changed from 'id' to 'userId' for auth middleware compatibility
         email: user.email,
         roles: user.roles 
       },
@@ -225,10 +226,11 @@ exports.facebookAuth = async (req, res) => {
       console.log(`✅ Existing user logged in via Facebook: ${email} (ID: ${user._id})`);
     }
 
-    // Generate JWT token
+    // Generate JWT token with correct payload structure
+    // Auth middleware expects 'userId', not 'id'
     const token = jwt.sign(
       { 
-        id: user._id,
+        userId: user._id,  // Changed from 'id' to 'userId' for auth middleware compatibility
         email: user.email,
         roles: user.roles 
       },

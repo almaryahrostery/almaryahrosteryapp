@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../constants/app_constants.dart';
+import 'auth_token_service.dart';
 
 /// OAuth Authentication Service
 /// Handles Google, Facebook, and Apple Sign In
@@ -11,6 +12,7 @@ class OAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final AuthTokenService _tokenService = AuthTokenService();
 
   /// Debug logging helper - only logs in debug mode
   void _debugLog(String message) {
@@ -63,9 +65,9 @@ class OAuthService {
 
       _debugLog('📡 Sending token to backend...');
 
-      // Send to backend
+      // Send to backend - corrected API endpoint
       final response = await http.post(
-        Uri.parse('${AppConstants.baseUrl}/auth/google'),
+        Uri.parse('${AppConstants.baseUrl}/api/auth/google'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'idToken': idToken}),
       );
@@ -76,16 +78,29 @@ class OAuthService {
         final data = json.decode(response.body);
 
         if (data['success'] == true) {
-          // Save token
-          await _secureStorage.write(key: 'auth_token', value: data['token']);
+          final backendToken = data['token'] as String;
+
+          // Save token to legacy storage for backward compatibility
+          await _secureStorage.write(key: 'auth_token', value: backendToken);
+
+          // 🔧 FIX: Save backend JWT to AuthTokenService for payment requests
+          // This ensures PaymentService can access the token via getAccessToken()
+          await _tokenService.setTokens(
+            accessToken: backendToken,
+            refreshToken: '', // Backend doesn't provide refresh token for OAuth
+            expiresInSeconds: 2592000, // 30 days (matching backend JWT_EXPIRE)
+          );
 
           _debugLog('✅ Google login successful: ${data['user']['email']}');
           _debugLog('👤 User ID: ${data['user']['id']}');
+          _debugLog(
+            '🎫 Backend JWT saved to AuthTokenService (30 days expiry)',
+          );
 
           return {
             'success': true,
             'user': data['user'],
-            'token': data['token'],
+            'token': backendToken,
             'message': data['message'] ?? 'Login successful',
           };
         }
