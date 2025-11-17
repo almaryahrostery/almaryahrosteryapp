@@ -22,7 +22,7 @@ const securityMiddleware = (app) => {
         'http://localhost:3000',
         'http://localhost:5001',
         'http://localhost:8000',  // Add admin panel origin
-        'https://almaryarostary.onrender.com'  // Updated: removed dashes
+        'https://almaryahrostery.onrender.com'  // Correct Render URL
       ].filter(Boolean);
 
       if (allowedOrigins.indexOf(origin) !== -1) {
