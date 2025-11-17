@@ -74,6 +74,28 @@ class AuthProvider extends ChangeNotifier {
         final currentUser = await _authRepository.getCurrentUser();
         if (currentUser != null) {
           _user = currentUser;
+          
+          // 🔥 CRITICAL FIX: Force refresh backend JWT token on app startup
+          // This ensures we have a valid backend JWT (30 days) instead of
+          // expired Firebase ID token (1 hour)
+          try {
+            debugPrint('🔄 Force refreshing backend JWT token on app startup...');
+            final response = await _authRepository.signInWithGoogle();
+            
+            // Update tokens with fresh backend JWT
+            await _tokenService.setTokens(
+              accessToken: response.accessToken,
+              refreshToken: response.refreshToken,
+              expiresInSeconds: response.expiresIn,
+            );
+            ApiClient().setAuthToken(response.accessToken);
+            
+            debugPrint('✅ Backend JWT token refreshed successfully (expires in ${response.expiresIn}s)');
+          } catch (e) {
+            debugPrint('⚠️ Failed to refresh backend JWT token: $e');
+            // Continue anyway - user can manually re-login if needed
+          }
+          
           _startSessionTimer();
           _setState(AuthState.authenticated);
         } else {

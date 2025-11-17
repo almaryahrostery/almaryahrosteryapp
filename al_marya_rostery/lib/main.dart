@@ -40,7 +40,6 @@ import 'core/network/network_manager.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'services/fcm_service.dart';
 import 'core/services/config_service.dart';
-import 'core/services/auth_token_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,20 +49,6 @@ void main() async {
 
   // Initialize network manager
   await NetworkManager().initialize();
-
-  // 🔥 CRITICAL FIX: Clear old Firebase tokens from cache
-  // This ensures users get fresh backend JWT tokens on next login
-  try {
-    final authTokenService = AuthTokenService();
-    await authTokenService.clearTokens();
-    if (kDebugMode) {
-      print('🧹 Cleared old cached tokens - fresh login required');
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      print('⚠️ Failed to clear tokens: $e');
-    }
-  }
 
   // Skip Stripe initialization at app launch to speed up startup
   // Stripe key will be fetched lazily when user enters checkout
