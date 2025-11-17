@@ -27,7 +27,7 @@ class CertificatePinningService {
 
   /// Base URL for the backend API
   /// UPDATE THIS with your actual backend domain
-  static const String backendHost = 'almaryarostary.onrender.com';
+  static const String backendHost = 'almaryahrostery.onrender.com';
 
   /// Public key pins for backend API
   ///

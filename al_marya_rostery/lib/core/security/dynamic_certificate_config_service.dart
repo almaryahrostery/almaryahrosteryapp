@@ -79,7 +79,7 @@ class DynamicCertificateConfigService {
   static const String _versionKey = 'dynamic_cert_version';
 
   // Configuration
-  static const String _backendHost = 'almaryarostary.onrender.com';
+  static const String _backendHost = 'almaryahrostery.onrender.com';
   static const String _configEndpoint = '/api/security/certificate-pins';
   static const Duration _cacheDuration = Duration(days: 7);
   static const Duration _refreshInterval = Duration(hours: 24);
