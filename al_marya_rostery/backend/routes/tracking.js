@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const trackingController = require('../controllers/trackingController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/auth');
 
 // All routes require authentication
 router.use(protect);
