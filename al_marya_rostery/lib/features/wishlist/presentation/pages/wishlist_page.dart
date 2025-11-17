@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/widgets/skeleton_loaders.dart';
+import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../../../data/models/coffee_product_model.dart';
 import '../../../../services/wishlist_api_service.dart';
 import '../../../coffee/presentation/pages/product_detail_page.dart';
@@ -122,6 +123,7 @@ class _WishlistPageState extends State<WishlistPage> {
           ),
         ],
       ),
+      bottomNavigationBar: const AppBottomNavBar(),
       body: Column(
         children: [
           // Search Bar
@@ -160,7 +162,8 @@ class _WishlistPageState extends State<WishlistPage> {
                 ? GridSkeleton(
                     itemCount: 6,
                     crossAxisCount: 2,
-                    itemBuilder: (context, index) => const ProductCardSkeleton(),
+                    itemBuilder: (context, index) =>
+                        const ProductCardSkeleton(),
                   )
                 : _buildContent(),
           ),

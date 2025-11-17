@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../core/providers/language_provider.dart';
 import '../core/utils/i18n_utils.dart';
 import '../core/theme/app_theme.dart';
+import '../core/widgets/app_bottom_nav_bar.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -37,6 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
             elevation: 0,
           ),
           backgroundColor: const Color(0xFFF5F5F5), // backgroundLight
+          bottomNavigationBar: const AppBottomNavBar(),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(

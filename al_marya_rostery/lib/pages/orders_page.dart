@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import '../core/theme/app_theme.dart';
+import '../core/widgets/app_bottom_nav_bar.dart';
 import '../core/services/order_cancellation_service.dart';
 import '../core/constants/app_constants.dart';
 import '../core/utils/error_handler.dart';
@@ -221,6 +222,7 @@ class _OrdersPageState extends State<OrdersPage>
         ),
       ),
       backgroundColor: const Color(0xFFF5F5F5),
+      bottomNavigationBar: const AppBottomNavBar(),
       body: !authProvider.isAuthenticated
           ? _buildGuestState()
           : _isLoading
