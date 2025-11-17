@@ -3,6 +3,7 @@ services:
   - type: web
     name: al-marya-rostery-production
     env: node
+    rootDir: backend
     plan: standard # Upgraded from free for better performance
     region: oregon # Choose closest region to your users
     runtime: node20 # Updated to Node.js 20 for better performance
@@ -80,10 +81,10 @@ services:
       
     autoDeploy: true
     
-    # Build settings - deploy on any backend changes
+    # Build settings - deploy on backend changes
     buildFilter:
       paths:
-      - ./**
+      - backend/**
       
     # Disk storage for uploads
     disk:
