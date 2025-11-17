@@ -6,7 +6,7 @@ services:
     plan: standard
     region: oregon
     runtime: node20
-    rootDir: al_marya_rostery/backend
+    rootDir: backend
     buildCommand: npm ci --only=production
     startCommand: npm start
     
@@ -20,7 +20,7 @@ services:
     # Watch for changes in backend directory
     buildFilter:
       paths:
-      - al_marya_rostery/backend/**
+      - backend/**
     
     # Environment variables
     envVars:
