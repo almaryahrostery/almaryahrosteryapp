@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../core/theme/app_theme.dart';
+import '../core/utils/error_handler.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -710,11 +711,10 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to pick image: $e'),
-            backgroundColor: Colors.red,
-          ),
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          onRetry: _pickImage,
         );
       }
     }

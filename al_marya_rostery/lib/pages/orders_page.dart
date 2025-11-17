@@ -8,6 +8,7 @@ import 'dart:async';
 import '../core/theme/app_theme.dart';
 import '../core/services/order_cancellation_service.dart';
 import '../core/constants/app_constants.dart';
+import '../core/utils/error_handler.dart';
 import '../models/order.dart';
 import '../models/cart.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
@@ -1099,13 +1100,11 @@ class _OrdersPageState extends State<OrdersPage>
       if (mounted) {
         Navigator.pop(context); // Close loading
 
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        // Show error message with retry option
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _processCancellation(order, reason),
         );
       }
     }

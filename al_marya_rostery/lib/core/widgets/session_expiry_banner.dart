@@ -202,7 +202,7 @@ class _SessionExpiryBannerState extends State<SessionExpiryBanner> {
       children: [
         // Main content
         widget.child,
-        
+
         // Warning banner positioned at top
         Positioned(
           top: 0,

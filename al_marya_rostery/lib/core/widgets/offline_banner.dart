@@ -4,17 +4,14 @@ import 'package:flutter/material.dart';
 import '../utils/app_logger.dart';
 
 /// Offline Detection Banner
-/// 
+///
 /// Monitors network connectivity and shows a banner when offline.
 /// Auto-hides when connection is restored.
 /// Prevents users from attempting actions that require internet.
 class OfflineBanner extends StatefulWidget {
   final Widget child;
-  
-  const OfflineBanner({
-    super.key,
-    required this.child,
-  });
+
+  const OfflineBanner({super.key, required this.child});
 
   @override
   State<OfflineBanner> createState() => _OfflineBannerState();
@@ -36,25 +33,25 @@ class _OfflineBannerState extends State<OfflineBanner> {
     _connectivityTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _checkConnectivity();
     });
-    
+
     // Initial check
     _checkConnectivity();
   }
 
   Future<void> _checkConnectivity() async {
     if (_isChecking) return;
-    
+
     setState(() {
       _isChecking = true;
     });
 
     try {
-      final result = await InternetAddress.lookup('google.com').timeout(
-        const Duration(seconds: 5),
-      );
-      
+      final result = await InternetAddress.lookup(
+        'google.com',
+      ).timeout(const Duration(seconds: 5));
+
       final isOnline = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-      
+
       if (mounted && _isOnline != isOnline) {
         setState(() {
           _isOnline = isOnline;
@@ -66,10 +63,7 @@ class _OfflineBannerState extends State<OfflineBanner> {
             tag: 'OfflineBanner',
           );
         } else {
-          AppLogger.warning(
-            'No internet connection',
-            tag: 'OfflineBanner',
-          );
+          AppLogger.warning('No internet connection', tag: 'OfflineBanner');
         }
       }
     } on SocketException catch (_) {
@@ -126,11 +120,7 @@ class _OfflineBannerState extends State<OfflineBanner> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.wifi_off,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    const Icon(Icons.wifi_off, color: Colors.white, size: 20),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
@@ -162,21 +152,17 @@ class _OfflineBannerState extends State<OfflineBanner> {
                                 ),
                               ),
                             )
-                          : const Text(
-                              'Retry',
-                              style: TextStyle(fontSize: 12),
-                            ),
+                          : const Text('Retry', style: TextStyle(fontSize: 12)),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-        
+
         // Main content
         Expanded(child: widget.child),
       ],
     );
   }
 }
-

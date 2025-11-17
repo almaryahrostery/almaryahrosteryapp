@@ -223,9 +223,7 @@ class MyApp extends StatelessWidget {
               return Directionality(
                 textDirection: languageProvider.textDirection,
                 child: OfflineBanner(
-                  child: SessionExpiryBanner(
-                    child: child ?? Container(),
-                  ),
+                  child: SessionExpiryBanner(child: child ?? Container()),
                 ),
               );
             },
