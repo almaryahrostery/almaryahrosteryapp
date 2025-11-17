@@ -6,7 +6,7 @@ class AppConstants {
   static const bool _useProduction = true; // ✅ Using production backend
 
   static String get baseUrl => _useProduction
-      ? 'https://almaryarostary.onrender.com' // Production Render.com backend (connects to MongoDB Atlas)
+      ? 'https://almaryahrostery.onrender.com' // Production Render.com backend (connects to MongoDB Atlas)
       : 'http://192.168.0.148:5001'; // Local development backend (use your computer's IP, not localhost)
 
   // Environment info for debugging
