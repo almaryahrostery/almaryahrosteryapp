@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../providers/coffee_provider.dart';
 
 class CoffeeAfricaPage extends StatefulWidget {
@@ -39,6 +40,7 @@ class _CoffeeAfricaPageState extends State<CoffeeAfricaPage> {
         ),
         elevation: 2,
       ),
+      bottomNavigationBar: const AppBottomNavBar(),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

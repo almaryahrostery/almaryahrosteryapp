@@ -77,6 +77,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         elevation: 2,
       ),
       drawer: const AppDrawer(),
+      bottomNavigationBar: const AppBottomNavBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
