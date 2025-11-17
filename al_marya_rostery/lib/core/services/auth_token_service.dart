@@ -98,13 +98,28 @@ class AuthTokenService {
         await _loadTokensFromStorage();
       }
 
+      // ⚠️ IMPORTANT: Check if token is expired and clear if so
+      if (_accessToken != null && _tokenExpiry != null) {
+        if (DateTime.now().isAfter(_tokenExpiry!)) {
+          AppLogger.warning(
+            '🚫 Token expired, clearing. Please login again.',
+            tag: 'AuthTokenService',
+          );
+          await clearTokens();
+          return null;
+        }
+      }
+
       // ⚠️ IMPORTANT: Return backend JWT token, NOT Firebase token
       // The backend /api/orders endpoint expects JWT tokens signed with JWT_SECRET
       // Firebase ID tokens are only used for initial auth via /api/auth/google
 
       if (_accessToken != null) {
+        final daysRemaining = _tokenExpiry != null
+            ? _tokenExpiry!.difference(DateTime.now()).inDays
+            : null;
         AppLogger.info(
-          '🎫 Returning backend JWT token (${_tokenExpiry != null ? "expires ${_tokenExpiry!.difference(DateTime.now()).inDays}d" : "no expiry"})',
+          '🎫 Returning backend JWT token (${daysRemaining != null ? "expires ${daysRemaining}d" : "no expiry"})',
           tag: 'AuthTokenService',
         );
       }
