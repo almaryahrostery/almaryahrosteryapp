@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/error_handler.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../services/reward_service.dart';
@@ -95,8 +96,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
           _isLoadingPoints = false;
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to load reward points: $e')),
+          ErrorHandler.showErrorSnackBar(
+            context,
+            e,
+            onRetry: _loadRewardPoints,
           );
         }
       }

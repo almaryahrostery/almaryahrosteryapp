@@ -269,6 +269,9 @@ class AuthTokenService {
     return _tokenExpiry!.difference(DateTime.now());
   }
 
+  /// Get token expiry timestamp (public getter)
+  DateTime? get tokenExpiry => _tokenExpiry;
+
   /// Set new authentication tokens
   ///
   /// Called after successful login or token refresh

@@ -37,7 +37,7 @@ class ErrorHandler {
       final message = error.toString().replaceAll('Exception: ', '');
       return _sanitizeErrorMessage(message);
     }
-    
+
     return _sanitizeErrorMessage(error.toString());
   }
 
@@ -48,11 +48,11 @@ class ErrorHandler {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
         return 'Connection timed out. Please check your internet and try again.';
-      
+
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode;
         final data = error.response?.data;
-        
+
         // Try to extract backend error message
         if (data is Map<String, dynamic>) {
           if (data['message'] != null) {
@@ -62,7 +62,7 @@ class ErrorHandler {
             return _sanitizeErrorMessage(data['error'].toString());
           }
         }
-        
+
         // Fallback to status code messages
         switch (statusCode) {
           case 400:
@@ -87,23 +87,25 @@ class ErrorHandler {
           default:
             return 'Something went wrong. Please try again.';
         }
-      
+
       case DioExceptionType.connectionError:
         return 'Network connection error. Please check your internet connection.';
-      
+
       case DioExceptionType.cancel:
         return 'Request was cancelled.';
-      
+
       case DioExceptionType.badCertificate:
         return 'Security error. Please check your connection.';
-      
+
       case DioExceptionType.unknown:
         return 'Network error occurred. Please try again.';
     }
   }
 
   /// Handle Firebase Authentication errors
-  static String _handleFirebaseAuthError(firebase_auth.FirebaseAuthException error) {
+  static String _handleFirebaseAuthError(
+    firebase_auth.FirebaseAuthException error,
+  ) {
     switch (error.code) {
       case 'user-not-found':
         return 'No account found with this email. Please sign up first.';
@@ -143,18 +145,22 @@ class ErrorHandler {
         .replaceAll('DioException: ', '')
         .replaceAll('[firebase_auth/exception] ', '')
         .trim();
-    
+
     // Make first letter uppercase
     if (message.isNotEmpty) {
       message = message[0].toUpperCase() + message.substring(1);
     }
-    
+
     // Ensure message ends with period
-    if (message.isNotEmpty && !message.endsWith('.') && !message.endsWith('!')) {
+    if (message.isNotEmpty &&
+        !message.endsWith('.') &&
+        !message.endsWith('!')) {
       message += '.';
     }
-    
-    return message.isEmpty ? 'An unexpected error occurred. Please try again.' : message;
+
+    return message.isEmpty
+        ? 'An unexpected error occurred. Please try again.'
+        : message;
   }
 
   /// Determine if error is temporary and can be retried
@@ -166,25 +172,25 @@ class ErrorHandler {
         case DioExceptionType.receiveTimeout:
         case DioExceptionType.connectionError:
           return true;
-        
+
         case DioExceptionType.badResponse:
           final statusCode = error.response?.statusCode;
           // Retry on server errors and rate limits
           return statusCode != null && (statusCode >= 500 || statusCode == 429);
-        
+
         default:
           return false;
       }
     }
-    
+
     if (error is SocketException || error is HttpException) {
       return true;
     }
-    
+
     if (error is TimeoutException) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -217,10 +223,7 @@ class ErrorHandler {
             const Icon(Icons.error_outline, color: Colors.white),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(fontSize: 14),
-              ),
+              child: Text(message, style: const TextStyle(fontSize: 14)),
             ),
           ],
         ),
@@ -260,10 +263,7 @@ class ErrorHandler {
             const Icon(Icons.check_circle_outline, color: Colors.white),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(fontSize: 14),
-              ),
+              child: Text(message, style: const TextStyle(fontSize: 14)),
             ),
           ],
         ),
@@ -289,10 +289,7 @@ class ErrorHandler {
             const Icon(Icons.warning_amber_rounded, color: Colors.white),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(fontSize: 14),
-              ),
+              child: Text(message, style: const TextStyle(fontSize: 14)),
             ),
           ],
         ),
@@ -348,7 +345,7 @@ class ErrorHandler {
 class TimeoutException implements Exception {
   final String message;
   TimeoutException([this.message = 'Request timed out']);
-  
+
   @override
   String toString() => message;
 }

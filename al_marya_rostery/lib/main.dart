@@ -41,6 +41,8 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'services/fcm_service.dart';
 import 'core/services/config_service.dart';
 import 'core/services/auth_token_service.dart';
+import 'core/widgets/session_expiry_banner.dart';
+import 'core/widgets/offline_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -220,7 +222,11 @@ class MyApp extends StatelessWidget {
             builder: (context, child) {
               return Directionality(
                 textDirection: languageProvider.textDirection,
-                child: child ?? Container(),
+                child: OfflineBanner(
+                  child: SessionExpiryBanner(
+                    child: child ?? Container(),
+                  ),
+                ),
               );
             },
           );
