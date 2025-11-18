@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
+import '../core/constants/app_constants.dart';
+
 /// Background message handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -318,9 +320,8 @@ class FCMService {
         return;
       }
 
-      final baseUrl = const bool.fromEnvironment('dart.vm.product')
-          ? 'https://your-production-url.com'
-          : 'http://localhost:5001';
+      // Use AppConstants.baseUrl for consistent environment configuration
+      final baseUrl = AppConstants.baseUrl;
 
       final response = await http.post(
         Uri.parse('$baseUrl/api/users/me/fcm-token'),

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
+import '../constants/app_constants.dart';
+
 /// WebSocketService handles real-time communication with the backend
 /// for delivery tracking, order status updates, and payment confirmations.
 class WebSocketService {
@@ -41,9 +43,8 @@ class WebSocketService {
       return;
     }
 
-    final serverUrl = isDevelopment
-        ? 'http://localhost:5001'
-        : 'https://api.almaryarostery.com';
+    // Use AppConstants.baseUrl for consistent environment configuration
+    final serverUrl = AppConstants.baseUrl;
 
     try {
       _socket = IO.io(
