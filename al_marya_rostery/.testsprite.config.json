@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "TestSprite": {
+      "command": "npx",
+      "args": [
+        "@testsprite/testsprite-mcp@latest"
+      ],
+      "env": {
+        "API_KEY": "sk-user-oDJbjNgbcq0pScoaqewYk1Ct3-qGlrtg"
+      }
+    }
+  },
+  "project": {
+    "name": "Al Marya Rostery",
+    "type": "flutter",
+    "testFramework": "flutter_test"
+  }
+}
