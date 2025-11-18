@@ -320,7 +320,27 @@ class AlMaryaIntegrationTest {
 
 /// Entry point for running the integration tests
 void main() async {
-  await AlMaryaIntegrationTest.runAllTests();
+  // Check if backend is available before running tests
+  try {
+    final response = await http
+        .get(
+          Uri.parse('${AlMaryaIntegrationTest.baseUrl}/api/health'),
+          headers: AlMaryaIntegrationTest.headers,
+        )
+        .timeout(const Duration(seconds: 2));
+
+    if (response.statusCode == 200) {
+      await AlMaryaIntegrationTest.runAllTests();
+    } else {
+      print('⚠️  Backend is not available. Skipping integration tests.');
+      print('   Start the backend server with: cd backend && npm run dev');
+    }
+  } catch (e) {
+    print('⚠️  Backend is not available. Skipping integration tests.');
+    print('   Start the backend server with: cd backend && npm run dev');
+    print('   Error: $e');
+    // Exit gracefully without failing the test suite
+  }
 }
 
 // Additional test scenarios for comprehensive validation

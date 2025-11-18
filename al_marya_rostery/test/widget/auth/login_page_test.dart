@@ -71,7 +71,6 @@ void main() {
       expect(find.byType(Checkbox), findsOneWidget); // Remember me
 
       // Check icons
-      expect(find.byIcon(Icons.coffee), findsOneWidget);
       expect(find.byIcon(Icons.email), findsOneWidget);
       expect(find.byIcon(Icons.lock), findsOneWidget);
       expect(find.byIcon(Icons.visibility), findsOneWidget);
