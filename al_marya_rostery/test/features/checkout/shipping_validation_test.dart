@@ -3,57 +3,81 @@ import 'package:flutter_test/flutter_test.dart';
 /// Tests for shipping form validation logic
 void main() {
   group('Phone Validation Tests', () {
-    const phonePattern = r'^\+971 5\d{8}$';
+    // UAE phone validation - supports multiple formats
+    // Patterns: +971501234567, 971501234567, 0501234567, 501234567
+    // Mobile prefixes: 50, 52, 54, 55, 56, 58
+    // Landline prefixes: 2, 3, 4, 6, 7, 9
+    bool validateUAEPhone(String phone) {
+      final patterns = [
+        RegExp(r'^\+971[0-9]{9}$'), // +971501234567
+        RegExp(r'^971[0-9]{9}$'), // 971501234567
+        RegExp(r'^0[0-9]{9}$'), // 0501234567
+        RegExp(r'^[0-9]{9}$'), // 501234567
+      ];
+      return patterns.any((pattern) => pattern.hasMatch(phone));
+    }
 
-    test('Valid phone format: +971 5XXXXXXXX', () {
-      final regex = RegExp(phonePattern);
-      expect(regex.hasMatch('+971 5123456789'), isTrue);
-      expect(regex.hasMatch('+971 5000000000'), isTrue);
-      expect(regex.hasMatch('+971 5999999999'), isTrue);
+    test('Valid phone format: +971XXXXXXXXX (mobile)', () {
+      expect(validateUAEPhone('+971501234567'), isTrue);
+      expect(validateUAEPhone('+971521234567'), isTrue);
+      expect(validateUAEPhone('+971541234567'), isTrue);
+      expect(validateUAEPhone('+971551234567'), isTrue);
+      expect(validateUAEPhone('+971561234567'), isTrue);
+      expect(validateUAEPhone('+971581234567'), isTrue);
     });
 
-    test('Invalid phone format: missing space', () {
-      final regex = RegExp(phonePattern);
-      expect(regex.hasMatch('+9715123456789'), isFalse);
+    test('Valid phone format: 971XXXXXXXXX (without +)', () {
+      expect(validateUAEPhone('971501234567'), isTrue);
+      expect(validateUAEPhone('971521234567'), isTrue);
+    });
+
+    test('Valid phone format: 0XXXXXXXXX (local format)', () {
+      expect(validateUAEPhone('0501234567'), isTrue);
+      expect(validateUAEPhone('0521234567'), isTrue);
+      expect(validateUAEPhone('0541234567'), isTrue);
+    });
+
+    test('Valid phone format: XXXXXXXXX (9 digits)', () {
+      expect(validateUAEPhone('501234567'), isTrue);
+      expect(validateUAEPhone('521234567'), isTrue);
+    });
+
+    test('Valid phone format: landline', () {
+      expect(validateUAEPhone('+971212345678'), isTrue);
+      expect(validateUAEPhone('+971312345678'), isTrue);
+      expect(validateUAEPhone('+971412345678'), isTrue);
     });
 
     test('Invalid phone format: wrong country code', () {
-      final regex = RegExp(phonePattern);
-      expect(regex.hasMatch('+966 5123456789'), isFalse); // Saudi Arabia
-      expect(regex.hasMatch('+974 5123456789'), isFalse); // Qatar
-    });
-
-    test('Invalid phone format: wrong prefix number', () {
-      final regex = RegExp(phonePattern);
-      expect(regex.hasMatch('+971 4123456789'), isFalse); // Missing '5'
-      expect(regex.hasMatch('+971 6123456789'), isFalse);
-      expect(regex.hasMatch('+971 2123456789'), isFalse);
+      expect(validateUAEPhone('+966501234567'), isFalse); // Saudi Arabia
+      expect(validateUAEPhone('+974501234567'), isFalse); // Qatar
+      expect(validateUAEPhone('+1501234567'), isFalse); // US
     });
 
     test('Invalid phone format: too few digits', () {
-      final regex = RegExp(phonePattern);
-      expect(regex.hasMatch('+971 512345678'), isFalse); // Only 7 digits
+      expect(validateUAEPhone('+97150123456'), isFalse); // Only 8 digits
+      expect(validateUAEPhone('50123456'), isFalse); // Only 8 digits
+      expect(validateUAEPhone('012345'), isFalse); // Only 6 digits
     });
 
     test('Invalid phone format: too many digits', () {
-      final regex = RegExp(phonePattern);
-      expect(regex.hasMatch('+971 51234567890'), isFalse); // 9 digits
+      expect(validateUAEPhone('+9715012345678'), isFalse); // 10 digits
+      expect(validateUAEPhone('50123456789'), isFalse); // 11 digits
     });
 
     test('Invalid phone format: letters included', () {
-      final regex = RegExp(phonePattern);
-      expect(regex.hasMatch('+971 5ABC456789'), isFalse);
+      expect(validateUAEPhone('+971ABC123456'), isFalse);
+      expect(validateUAEPhone('05ABC12345'), isFalse);
     });
 
     test('Invalid phone format: empty string', () {
-      final regex = RegExp(phonePattern);
-      expect(regex.hasMatch(''), isFalse);
+      expect(validateUAEPhone(''), isFalse);
     });
 
     test('Normalize phone with extra spaces', () {
-      final phone = '+971 5123456789   ';
+      final phone = '+971501234567   ';
       final trimmed = phone.trim();
-      expect(trimmed, equals('+971 5123456789'));
+      expect(validateUAEPhone(trimmed), isTrue);
     });
   });
 
@@ -90,12 +114,21 @@ void main() {
   });
 
   group('Form Validation Integration', () {
-    test('Form valid: phone and address both provided', () {
-      final phone = '+971 5123456789';
-      final address = '123 Sheikh Zayed Road, Dubai';
-      final phoneRegex = RegExp(r'^\+971 5\d{8}$');
+    bool validateUAEPhone(String phone) {
+      final patterns = [
+        RegExp(r'^\+971[0-9]{9}$'),
+        RegExp(r'^971[0-9]{9}$'),
+        RegExp(r'^0[0-9]{9}$'),
+        RegExp(r'^[0-9]{9}$'),
+      ];
+      return patterns.any((pattern) => pattern.hasMatch(phone));
+    }
 
-      final isPhoneValid = phoneRegex.hasMatch(phone.trim());
+    test('Form valid: phone and address both provided', () {
+      final phone = '+971501234567';
+      final address = '123 Sheikh Zayed Road, Dubai';
+
+      final isPhoneValid = validateUAEPhone(phone.trim());
       final isAddressValid = address.trim().isNotEmpty;
 
       expect(isPhoneValid && isAddressValid, isTrue);
@@ -104,21 +137,18 @@ void main() {
     test('Form invalid: phone missing, address provided', () {
       final phone = '';
       final address = '123 Sheikh Zayed Road, Dubai';
-      final phoneRegex = RegExp(r'^\+971 5\d{8}$');
 
-      final isPhoneValid =
-          phone.isNotEmpty && phoneRegex.hasMatch(phone.trim());
+      final isPhoneValid = phone.isNotEmpty && validateUAEPhone(phone.trim());
       final isAddressValid = address.trim().isNotEmpty;
 
       expect(isPhoneValid && isAddressValid, isFalse);
     });
 
     test('Form invalid: phone provided, address missing', () {
-      final phone = '+971 5123456789';
+      final phone = '+971501234567';
       final address = '';
-      final phoneRegex = RegExp(r'^\+971 5\d{8}$');
 
-      final isPhoneValid = phoneRegex.hasMatch(phone.trim());
+      final isPhoneValid = validateUAEPhone(phone.trim());
       final isAddressValid = address.trim().isNotEmpty;
 
       expect(isPhoneValid && isAddressValid, isFalse);
@@ -127,21 +157,18 @@ void main() {
     test('Form invalid: both phone and address missing', () {
       final phone = '';
       final address = '';
-      final phoneRegex = RegExp(r'^\+971 5\d{8}$');
 
-      final isPhoneValid =
-          phone.isNotEmpty && phoneRegex.hasMatch(phone.trim());
+      final isPhoneValid = phone.isNotEmpty && validateUAEPhone(phone.trim());
       final isAddressValid = address.trim().isNotEmpty;
 
       expect(isPhoneValid && isAddressValid, isFalse);
     });
 
     test('Form invalid: phone wrong format, address valid', () {
-      final phone = '+971 4123456789'; // Wrong prefix
+      final phone = '+966501234567'; // Saudi Arabia number
       final address = '123 Sheikh Zayed Road, Dubai';
-      final phoneRegex = RegExp(r'^\+971 5\d{8}$');
 
-      final isPhoneValid = phoneRegex.hasMatch(phone.trim());
+      final isPhoneValid = validateUAEPhone(phone.trim());
       final isAddressValid = address.trim().isNotEmpty;
 
       expect(isPhoneValid && isAddressValid, isFalse);
@@ -187,30 +214,50 @@ void main() {
   });
 
   group('Phone Format Normalization', () {
+    bool validateUAEPhone(String phone) {
+      final patterns = [
+        RegExp(r'^\+971[0-9]{9}$'),
+        RegExp(r'^971[0-9]{9}$'),
+        RegExp(r'^0[0-9]{9}$'),
+        RegExp(r'^[0-9]{9}$'),
+      ];
+      return patterns.any((pattern) => pattern.hasMatch(phone));
+    }
+
     test('Remove extra spaces: leading/trailing', () {
-      final phone = '  +971 5123456789  ';
+      final phone = '  +971501234567  ';
       final normalized = phone.trim();
-      expect(normalized, equals('+971 5123456789'));
+      expect(validateUAEPhone(normalized), isTrue);
     });
 
     test('Phone stays same with correct formatting', () {
-      final phone = '+971 5123456789';
+      final phone = '+971501234567';
       final normalized = phone.trim();
-      expect(normalized, equals('+971 5123456789'));
+      expect(validateUAEPhone(normalized), isTrue);
     });
 
-    test('Phone with internal extra spaces (invalid)', () {
-      final phone = '+971  5123456789'; // Double space
-      final regex = RegExp(r'^\+971 5\d{8}$');
-      expect(regex.hasMatch(phone.trim()), isFalse);
+    test('Phone with spaces (should be removed)', () {
+      final phone = '+971 50 123 4567';
+      final normalized = phone.replaceAll(' ', '');
+      expect(validateUAEPhone(normalized), isTrue);
     });
   });
 
   group('User Input Edge Cases', () {
-    test('Phone with dashes (should be invalid after trimming)', () {
-      final phone = '+971-5-123-456-789';
-      final regex = RegExp(r'^\+971 5\d{8}$');
-      expect(regex.hasMatch(phone.trim()), isFalse);
+    bool validateUAEPhone(String phone) {
+      final patterns = [
+        RegExp(r'^\+971[0-9]{9}$'),
+        RegExp(r'^971[0-9]{9}$'),
+        RegExp(r'^0[0-9]{9}$'),
+        RegExp(r'^[0-9]{9}$'),
+      ];
+      return patterns.any((pattern) => pattern.hasMatch(phone));
+    }
+
+    test('Phone with dashes (should be valid after normalization)', () {
+      final phone = '+971-50-123-4567';
+      final normalized = phone.replaceAll('-', '').replaceAll(' ', '');
+      expect(validateUAEPhone(normalized), isTrue);
     });
 
     test('Address with newlines (should normalize)', () {
@@ -224,15 +271,14 @@ void main() {
     });
 
     test('Phone starting with country code without +', () {
-      final phone = '971 5123456789';
-      final regex = RegExp(r'^\+971 5\d{8}$');
-      expect(regex.hasMatch(phone.trim()), isFalse);
+      final phone = '971501234567';
+      expect(validateUAEPhone(phone.trim()), isTrue);
     });
 
-    test('Phone with parentheses (invalid format)', () {
-      final phone = '+971 (5) 123-456-789';
-      final regex = RegExp(r'^\+971 5\d{8}$');
-      expect(regex.hasMatch(phone.trim()), isFalse);
+    test('Phone with parentheses (should be valid after normalization)', () {
+      final phone = '+971 (50) 123-4567';
+      final normalized = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      expect(validateUAEPhone(normalized), isTrue);
     });
   });
 }

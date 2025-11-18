@@ -11,7 +11,10 @@ void main() {
     });
 
     test('should connect to correct API endpoint', () {
-      expect(AppConstants.baseUrl, equals('http://localhost:5001'));
+      expect(
+        AppConstants.baseUrl,
+        equals('https://almaryahrostery.onrender.com'),
+      );
       expect(AppConstants.coffeeEndpoint, equals('/api/coffees'));
     });
 
@@ -23,7 +26,7 @@ void main() {
     // In a real environment, you'd mock the API calls
     test('should have proper API configuration', () async {
       // Test that our configuration is correct
-      expect(AppConstants.baseUrl, contains('5001'));
+      expect(AppConstants.baseUrl, contains('almaryahrostery'));
       expect(AppConstants.coffeeEndpoint, startsWith('/api/'));
     });
   });
