@@ -46,20 +46,49 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Product Image
-                Container(
-                  height: 300,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryLightBrown.withValues(alpha: 0.1),
-                  ),
-                  child: Image.network(
+      appBar: AppBar(
+        title: Text(
+          widget.product.name,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: AppTheme.primaryBrown,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite_border),
+            tooltip: 'Add to Wishlist',
+            onPressed: () {
+              // TODO: Implement wishlist functionality
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Added to wishlist!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Share',
+            onPressed: () {
+              // TODO: Implement share functionality
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Image
+            Container(
+              height: 300,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLightBrown.withValues(alpha: 0.1),
+              ),
+              child: Image.network(
                     widget.product.imageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
@@ -89,10 +118,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       );
                     },
                   ),
-                ),
+              ),
 
-                // Product Info Section
-                Padding(
+              // Product Info Section
+              Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,38 +410,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          // Floating back button
-          Positioned(
-            top: 50,
-            left: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
-              child: IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: AppTheme.primaryBrown,
-                ),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

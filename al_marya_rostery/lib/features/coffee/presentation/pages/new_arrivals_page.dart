@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../widgets/common/app_drawer.dart';
 import '../providers/coffee_provider.dart';
 
 class NewArrivalsPage extends StatefulWidget {
@@ -41,7 +40,6 @@ class _NewArrivalsPageState extends State<NewArrivalsPage> {
         ),
         elevation: 2,
       ),
-      drawer: const AppDrawer(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -290,7 +288,7 @@ class _NewArrivalsPageState extends State<NewArrivalsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      '\$${coffee.price.toStringAsFixed(2)}',
+                                      'AED ${coffee.price.toStringAsFixed(2)}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppTheme.primaryBrown,

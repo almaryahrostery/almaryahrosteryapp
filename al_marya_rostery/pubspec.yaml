@@ -2,7 +2,7 @@ name: qahwat_al_emarat
 description: ALMARYAH ROSTERY - Premium Coffee Experience
 
 publish_to: 'none'
-version: 1.0.4+4003
+version: 1.0.5+5005
 
 environment:
   sdk: '>=3.8.0 <4.0.0'
