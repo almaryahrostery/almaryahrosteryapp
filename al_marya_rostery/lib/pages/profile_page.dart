@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../core/theme/app_theme.dart';
-import '../core/utils/error_handler.dart';
 import '../core/widgets/skeleton_loaders.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
+import '../services/address_service.dart';
+import '../models/saved_address.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -83,6 +86,12 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
   bool _isLoading = false;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+  bool _notificationsEnabled = true;
+  bool _emailNotifications = true;
+  bool _pushNotifications = true;
+  List<SavedAddress> _savedAddresses = [];
+  SavedAddress? _selectedAddress;
+  double _profileCompletion = 0.0;
 
   @override
   void initState() {
@@ -100,7 +109,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
     super.dispose();
   }
 
-  void _loadUserData() {
+  void _loadUserData() async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final user = authProvider.user;
@@ -109,9 +118,33 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         _nameController.text = user.name;
         _emailController.text = user.email;
         _phoneController.text = user.phone ?? '';
-        // Note: Load address and city from user preferences or separate API
-        _addressController.text = '';
-        _cityController.text = 'Dubai';
+        
+        // Load saved addresses
+        try {
+          final addressService = AddressService();
+          _savedAddresses = await addressService.getSavedAddresses();
+          _selectedAddress = await addressService.getDefaultAddress();
+          
+          if (_selectedAddress != null) {
+            _addressController.text = _selectedAddress!.fullAddress;
+            // Extract city from address (simple approach)
+            final addressParts = _selectedAddress!.fullAddress.split(',');
+            _cityController.text = addressParts.length > 1 ? addressParts.last.trim() : 'Dubai';
+          }
+        } catch (e) {
+          debugPrint('Error loading addresses: $e');
+        }
+        
+        // Load notification preferences
+        final prefs = await SharedPreferences.getInstance();
+        setState(() {
+          _emailNotifications = prefs.getBool('email_notifications') ?? true;
+          _pushNotifications = prefs.getBool('push_notifications') ?? true;
+          _notificationsEnabled = _emailNotifications || _pushNotifications;
+        });
+        
+        // Calculate profile completion
+        _calculateProfileCompletion();
       }
     } catch (e) {
       debugPrint('Error loading user data: $e');
@@ -122,6 +155,32 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
       _addressController.text = '';
       _cityController.text = 'Dubai';
     }
+  }
+
+  void _calculateProfileCompletion() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    
+    if (user == null) {
+      setState(() => _profileCompletion = 0.0);
+      return;
+    }
+    
+    int completed = 0;
+    int total = 7;
+    
+    if (user.name.isNotEmpty) completed++;
+    if (user.email.isNotEmpty) completed++;
+    if (user.phone?.isNotEmpty ?? false) completed++;
+    if (user.avatar?.isNotEmpty ?? false) completed++;
+    if (_addressController.text.isNotEmpty) completed++;
+    if (_cityController.text.isNotEmpty) completed++;
+    // Email verification counted as bonus
+    completed++; // Base completion
+    
+    setState(() {
+      _profileCompletion = (completed / total) * 100;
+    });
   }
 
   @override
@@ -329,9 +388,67 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            user.email ?? '',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF8C8C8C)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                user.email ?? '',
+                style: const TextStyle(fontSize: 14, color: Color(0xFF8C8C8C)),
+              ),
+              if (user.emailVerified ?? false) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.verified, size: 12, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        'Verified',
+                        style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.account_circle, size: 16, color: AppTheme.primaryBrown),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Profile ${_profileCompletion.toStringAsFixed(0)}% Complete',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryBrown,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: _profileCompletion / 100,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _profileCompletion >= 80 ? Colors.green : 
+                    _profileCompletion >= 50 ? AppTheme.accentAmber : Colors.orange,
+                  ),
+                  minHeight: 6,
+                ),
+              ),
+            ],
           ),
           if (user.roles?.isNotEmpty == true) ...[
             const SizedBox(height: 12),
@@ -424,28 +541,70 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               icon: Icons.phone,
               enabled: _isEditing,
               keyboardType: TextInputType.phone,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+              ],
               validator: (value) {
-                if (value?.isNotEmpty == true &&
-                    !RegExp(r'^\+?[0-9]{8,15}$').hasMatch(value!)) {
-                  return 'Please enter a valid phone number';
+                if (value?.isEmpty ?? true) return null;
+                
+                // UAE phone number validation
+                // Formats: +971501234567, 971501234567, 0501234567, 501234567
+                final cleaned = value!.replaceAll(RegExp(r'\s+'), '');
+                
+                if (cleaned.startsWith('+971')) {
+                  if (!RegExp(r'^\+971(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$').hasMatch(cleaned)) {
+                    return 'Invalid UAE number (e.g., +971501234567)';
+                  }
+                } else if (cleaned.startsWith('971')) {
+                  if (!RegExp(r'^971(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$').hasMatch(cleaned)) {
+                    return 'Invalid UAE number (e.g., 971501234567)';
+                  }
+                } else if (cleaned.startsWith('0')) {
+                  if (!RegExp(r'^0(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$').hasMatch(cleaned)) {
+                    return 'Invalid UAE number (e.g., 0501234567)';
+                  }
+                } else if (!RegExp(r'^(50|52|54|55|56|58)\d{7}$').hasMatch(cleaned)) {
+                  return 'Invalid UAE number (e.g., 501234567)';
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            _buildTextField(
-              controller: _addressController,
-              label: 'Address',
-              icon: Icons.location_on,
-              enabled: _isEditing,
-              maxLines: 2,
+            // Address Selection
+            InkWell(
+              onTap: _isEditing ? _showAddressManagement : null,
+              borderRadius: BorderRadius.circular(12),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Address',
+                  prefixIcon: Icon(
+                    Icons.location_on,
+                    color: _isEditing ? AppTheme.primaryBrown : const Color(0xFF8C8C8C),
+                  ),
+                  suffixIcon: _isEditing ? const Icon(Icons.edit, size: 20) : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  filled: true,
+                  fillColor: _isEditing ? Colors.white : const Color(0xFFF9F9F9),
+                ),
+                child: Text(
+                  _addressController.text.isEmpty ? 'Tap to select address' : _addressController.text,
+                  style: TextStyle(
+                    color: _addressController.text.isEmpty ? const Color(0xFF8C8C8C) : const Color(0xFF2E2E2E),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             _buildTextField(
               controller: _cityController,
               label: 'City',
               icon: Icons.location_city,
-              enabled: _isEditing,
+              enabled: false,
             ),
           ],
         ),
@@ -471,12 +630,8 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildPreferenceItem(
-              icon: Icons.notifications,
-              title: 'Notifications',
-              subtitle: 'Email and push notifications',
-              onTap: () => _showComingSoon('Notification Settings'),
-            ),
+            _buildNotificationPreference(),
+            const Divider(height: 24),
             _buildPreferenceItem(
               icon: Icons.language,
               title: 'Language',
@@ -552,6 +707,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
     int maxLines = 1,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextFormField(
       controller: controller,
@@ -559,6 +715,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
       keyboardType: keyboardType,
       validator: validator,
       maxLines: maxLines,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(
@@ -580,6 +737,91 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         filled: true,
         fillColor: enabled ? Colors.white : const Color(0xFFF9F9F9),
       ),
+    );
+  }
+
+  Future<void> _showAddressManagement() async {
+    final selected = await Navigator.pushNamed(
+      context,
+      '/address-management',
+    );
+    
+    if (selected != null && selected is SavedAddress) {
+      setState(() {
+        _selectedAddress = selected;
+        _addressController.text = selected.fullAddress;
+        final addressParts = selected.fullAddress.split(',');
+        _cityController.text = addressParts.length > 1 ? addressParts.last.trim() : 'Dubai';
+      });
+      _calculateProfileCompletion();
+    }
+  }
+
+  Widget _buildNotificationPreference() {
+    return Column(
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBrown.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.email, color: AppTheme.primaryBrown, size: 20),
+          ),
+          title: const Text(
+            'Email Notifications',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF2E2E2E),
+            ),
+          ),
+          subtitle: const Text(
+            'Receive order updates via email',
+            style: TextStyle(fontSize: 12, color: Color(0xFF8C8C8C)),
+          ),
+          value: _emailNotifications,
+          activeColor: AppTheme.primaryBrown,
+          onChanged: (value) {
+            setState(() {
+              _emailNotifications = value;
+              _notificationsEnabled = _emailNotifications || _pushNotifications;
+            });
+          },
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBrown.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.notifications, color: AppTheme.primaryBrown, size: 20),
+          ),
+          title: const Text(
+            'Push Notifications',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF2E2E2E),
+            ),
+          ),
+          subtitle: const Text(
+            'Receive push notifications on your device',
+            style: TextStyle(fontSize: 12, color: Color(0xFF8C8C8C)),
+          ),
+          value: _pushNotifications,
+          activeColor: AppTheme.primaryBrown,
+          onChanged: (value) {
+            setState(() {
+              _pushNotifications = value;
+              _notificationsEnabled = _emailNotifications || _pushNotifications;
+            });
+          },
+        ),
+      ],
     );
   }
 
@@ -707,27 +949,116 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
 
   Future<void> _pickImage() async {
     try {
+      // Show option to pick from gallery or camera
+      final source = await showDialog<ImageSource>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Choose Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: AppTheme.primaryBrown),
+                title: const Text('Gallery'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: AppTheme.primaryBrown),
+                title: const Text('Camera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (source == null) return;
+
       final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         maxWidth: 512,
         maxHeight: 512,
-        imageQuality: 80,
+        imageQuality: 85,
+        preferredCameraDevice: CameraDevice.front,
       );
 
       if (image != null) {
+        // Validate file size (max 5MB)
+        final file = File(image.path);
+        final fileSize = await file.length();
+        
+        if (fileSize > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Image too large. Please select an image under 5MB.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
+
         setState(() {
-          _selectedImage = File(image.path);
+          _selectedImage = file;
         });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image selected. Save changes to update your profile picture.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } on PlatformException catch (e) {
+      if (mounted) {
+        String message = 'Failed to pick image';
+        if (e.code == 'camera_access_denied') {
+          message = 'Camera permission denied. Please enable in settings.';
+        } else if (e.code == 'photo_access_denied') {
+          message = 'Photo library permission denied. Please enable in settings.';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _pickImage,
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ErrorHandler.showErrorSnackBar(context, e, onRetry: _pickImage);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _pickImage,
+            ),
+          ),
+        );
       }
     }
   }
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fix the errors in the form'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
@@ -738,14 +1069,36 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
+      // Normalize phone number
+      String? phone = _phoneController.text.trim();
+      if (phone.isNotEmpty) {
+        // Remove spaces and ensure UAE format
+        phone = phone.replaceAll(RegExp(r'\s+'), '');
+        if (!phone.startsWith('+')) {
+          if (phone.startsWith('971')) {
+            phone = '+$phone';
+          } else if (phone.startsWith('0')) {
+            phone = '+971${phone.substring(1)}';
+          } else {
+            phone = '+971$phone';
+          }
+        }
+      }
+
       // Call the actual profile update API
       await authProvider.updateProfile(
         name: _nameController.text.trim(),
-        phone: _phoneController.text.trim().isNotEmpty
-            ? _phoneController.text.trim()
-            : null,
-        avatarFile: _selectedImage, // Pass the selected image file for upload
+        phone: phone.isNotEmpty ? phone : null,
+        avatarFile: _selectedImage,
       );
+      
+      // Save notification preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('email_notifications', _emailNotifications);
+      await prefs.setBool('push_notifications', _pushNotifications);
+      
+      // Recalculate profile completion
+      _calculateProfileCompletion();
 
       setState(() {
         _isEditing = false;
@@ -755,22 +1108,71 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Color(0xFF4CAF50),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Profile updated successfully!',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } on SocketException {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No internet connection. Please check your network.'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _saveProfile,
+            ),
+          ),
+        );
+      }
+    } on PlatformException catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: ${e.message ?? "Unknown error"}'),
+            backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-
+      setState(() => _isLoading = false);
       if (mounted) {
+        String errorMessage = 'Failed to update profile';
+        if (e.toString().contains('timeout')) {
+          errorMessage = 'Request timeout. Please try again.';
+        } else if (e.toString().contains('unauthorized')) {
+          errorMessage = 'Session expired. Please log in again.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update profile: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _saveProfile,
+            ),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
