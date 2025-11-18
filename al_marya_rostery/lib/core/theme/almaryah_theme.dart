@@ -44,7 +44,7 @@ class AlmaryahTheme {
         centerTitle: true,
         titleTextStyle: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
           color: _white,
           letterSpacing: 0.5,
@@ -74,7 +74,7 @@ class AlmaryahTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           textStyle: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -89,7 +89,7 @@ class AlmaryahTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -97,7 +97,7 @@ class AlmaryahTheme {
         style: TextButton.styleFrom(
           foregroundColor: _primaryOliveGold,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         ),
       ),
 
@@ -105,66 +105,66 @@ class AlmaryahTheme {
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 32,
+          fontSize: 26,
           fontWeight: FontWeight.bold,
           color: _textPrimaryDarkCharcoal,
           letterSpacing: -0.5,
         ),
         displayMedium: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 28,
+          fontSize: 22,
           fontWeight: FontWeight.w600,
           color: _textPrimaryDarkCharcoal,
           letterSpacing: -0.25,
         ),
         displaySmall: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 24,
+          fontSize: 20,
           fontWeight: FontWeight.w600,
           color: _textPrimaryDarkCharcoal,
         ),
         headlineLarge: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: FontWeight.bold,
           color: _textPrimaryDarkCharcoal,
         ),
         headlineMedium: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 20,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
           color: _textPrimaryDarkCharcoal,
         ),
         headlineSmall: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
           color: _textPrimaryDarkCharcoal,
         ),
         titleLarge: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: FontWeight.bold,
           color: _textPrimaryDarkCharcoal,
         ),
         titleMedium: TextStyle(
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.w500,
           color: _textPrimaryDarkCharcoal,
         ),
         titleSmall: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: _textSecondaryMutedGray,
         ),
         bodyLarge: TextStyle(
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.normal,
           color: _textPrimaryDarkCharcoal,
           height: 1.5,
         ),
         bodyMedium: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.normal,
           color: _textSecondaryMutedGray,
           height: 1.4,
@@ -176,7 +176,7 @@ class AlmaryahTheme {
           height: 1.4,
         ),
         labelLarge: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: _textPrimaryDarkCharcoal,
         ),
@@ -279,7 +279,7 @@ class AlmaryahTheme {
         centerTitle: true,
         titleTextStyle: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
           color: _secondaryLightGold,
           letterSpacing: 0.5,
@@ -309,7 +309,7 @@ class AlmaryahTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           textStyle: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -324,7 +324,7 @@ class AlmaryahTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -332,7 +332,7 @@ class AlmaryahTheme {
         style: TextButton.styleFrom(
           foregroundColor: _secondaryLightGold,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         ),
       ),
 
@@ -340,66 +340,66 @@ class AlmaryahTheme {
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 32,
+          fontSize: 26,
           fontWeight: FontWeight.bold,
           color: _darkTextLight,
           letterSpacing: -0.5,
         ),
         displayMedium: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 28,
+          fontSize: 22,
           fontWeight: FontWeight.w600,
           color: _darkTextLight,
           letterSpacing: -0.25,
         ),
         displaySmall: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 24,
+          fontSize: 20,
           fontWeight: FontWeight.w600,
           color: _darkTextLight,
         ),
         headlineLarge: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: FontWeight.bold,
           color: _darkTextLight,
         ),
         headlineMedium: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 20,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
           color: _darkTextLight,
         ),
         headlineSmall: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
           color: _darkTextLight,
         ),
         titleLarge: TextStyle(
           fontFamily: 'serif', // Fallback to system serif
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: FontWeight.bold,
           color: _darkTextLight,
         ),
         titleMedium: TextStyle(
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.w500,
           color: _darkTextLight,
         ),
         titleSmall: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: _darkTextMuted,
         ),
         bodyLarge: TextStyle(
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.normal,
           color: _darkTextLight,
           height: 1.5,
         ),
         bodyMedium: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.normal,
           color: _darkTextMuted,
           height: 1.4,
@@ -411,7 +411,7 @@ class AlmaryahTheme {
           height: 1.4,
         ),
         labelLarge: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: _darkTextLight,
         ),

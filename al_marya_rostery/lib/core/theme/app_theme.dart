@@ -55,7 +55,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
         ),
@@ -84,7 +84,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           textStyle: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -94,44 +94,44 @@ class AppTheme {
       // Text Theme
       textTheme: const TextTheme(
         displayLarge: TextStyle(
-          fontSize: 32,
+          fontSize: 26,
           fontWeight: FontWeight.bold,
           color: textDark,
           letterSpacing: -0.5,
         ),
         displayMedium: TextStyle(
-          fontSize: 28,
+          fontSize: 22,
           fontWeight: FontWeight.w600,
           color: textDark,
           letterSpacing: -0.25,
         ),
         displaySmall: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
-          color: textDark,
-        ),
-        headlineLarge: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-          color: textDark,
-        ),
-        headlineMedium: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: textDark,
         ),
-        headlineSmall: TextStyle(
+        headlineLarge: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: textDark,
         ),
-        titleLarge: TextStyle(
+        headlineMedium: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: textDark,
+        ),
+        headlineSmall: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: textDark,
         ),
+        titleLarge: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: textDark,
+        ),
         titleMedium: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: textMedium,
         ),
@@ -141,13 +141,13 @@ class AppTheme {
           color: textMedium,
         ),
         bodyLarge: TextStyle(
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.normal,
           color: textDark,
           height: 1.5,
         ),
         bodyMedium: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.normal,
           color: textMedium,
           height: 1.4,

@@ -118,23 +118,25 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         _nameController.text = user.name;
         _emailController.text = user.email;
         _phoneController.text = user.phone ?? '';
-        
+
         // Load saved addresses
         try {
           final addressService = AddressService();
           _savedAddresses = await addressService.getSavedAddresses();
           _selectedAddress = await addressService.getDefaultAddress();
-          
+
           if (_selectedAddress != null) {
             _addressController.text = _selectedAddress!.fullAddress;
             // Extract city from address (simple approach)
             final addressParts = _selectedAddress!.fullAddress.split(',');
-            _cityController.text = addressParts.length > 1 ? addressParts.last.trim() : 'Dubai';
+            _cityController.text = addressParts.length > 1
+                ? addressParts.last.trim()
+                : 'Dubai';
           }
         } catch (e) {
           debugPrint('Error loading addresses: $e');
         }
-        
+
         // Load notification preferences
         final prefs = await SharedPreferences.getInstance();
         setState(() {
@@ -142,7 +144,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
           _pushNotifications = prefs.getBool('push_notifications') ?? true;
           _notificationsEnabled = _emailNotifications || _pushNotifications;
         });
-        
+
         // Calculate profile completion
         _calculateProfileCompletion();
       }
@@ -160,15 +162,15 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
   void _calculateProfileCompletion() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
-    
+
     if (user == null) {
       setState(() => _profileCompletion = 0.0);
       return;
     }
-    
+
     int completed = 0;
     int total = 7;
-    
+
     if (user.name.isNotEmpty) completed++;
     if (user.email.isNotEmpty) completed++;
     if (user.phone?.isNotEmpty ?? false) completed++;
@@ -177,7 +179,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
     if (_cityController.text.isNotEmpty) completed++;
     // Email verification counted as bonus
     completed++; // Base completion
-    
+
     setState(() {
       _profileCompletion = (completed / total) * 100;
     });
@@ -398,7 +400,10 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               if (user.emailVerified ?? false) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(8),
@@ -409,7 +414,11 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
                       SizedBox(width: 4),
                       Text(
                         'Verified',
-                        style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -423,7 +432,11 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.account_circle, size: 16, color: AppTheme.primaryBrown),
+                  Icon(
+                    Icons.account_circle,
+                    size: 16,
+                    color: AppTheme.primaryBrown,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Profile ${_profileCompletion.toStringAsFixed(0)}% Complete',
@@ -442,8 +455,11 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
                   value: _profileCompletion / 100,
                   backgroundColor: Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    _profileCompletion >= 80 ? Colors.green : 
-                    _profileCompletion >= 50 ? AppTheme.accentAmber : Colors.orange,
+                    _profileCompletion >= 80
+                        ? Colors.green
+                        : _profileCompletion >= 50
+                        ? AppTheme.accentAmber
+                        : Colors.orange,
                   ),
                   minHeight: 6,
                 ),
@@ -546,24 +562,32 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               ],
               validator: (value) {
                 if (value?.isEmpty ?? true) return null;
-                
+
                 // UAE phone number validation
                 // Formats: +971501234567, 971501234567, 0501234567, 501234567
                 final cleaned = value!.replaceAll(RegExp(r'\s+'), '');
-                
+
                 if (cleaned.startsWith('+971')) {
-                  if (!RegExp(r'^\+971(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$').hasMatch(cleaned)) {
+                  if (!RegExp(
+                    r'^\+971(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$',
+                  ).hasMatch(cleaned)) {
                     return 'Invalid UAE number (e.g., +971501234567)';
                   }
                 } else if (cleaned.startsWith('971')) {
-                  if (!RegExp(r'^971(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$').hasMatch(cleaned)) {
+                  if (!RegExp(
+                    r'^971(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$',
+                  ).hasMatch(cleaned)) {
                     return 'Invalid UAE number (e.g., 971501234567)';
                   }
                 } else if (cleaned.startsWith('0')) {
-                  if (!RegExp(r'^0(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$').hasMatch(cleaned)) {
+                  if (!RegExp(
+                    r'^0(50|52|54|55|56|58|2|3|4|6|7|9)\d{7}$',
+                  ).hasMatch(cleaned)) {
                     return 'Invalid UAE number (e.g., 0501234567)';
                   }
-                } else if (!RegExp(r'^(50|52|54|55|56|58)\d{7}$').hasMatch(cleaned)) {
+                } else if (!RegExp(
+                  r'^(50|52|54|55|56|58)\d{7}$',
+                ).hasMatch(cleaned)) {
                   return 'Invalid UAE number (e.g., 501234567)';
                 }
                 return null;
@@ -579,20 +603,30 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
                   labelText: 'Address',
                   prefixIcon: Icon(
                     Icons.location_on,
-                    color: _isEditing ? AppTheme.primaryBrown : const Color(0xFF8C8C8C),
+                    color: _isEditing
+                        ? AppTheme.primaryBrown
+                        : const Color(0xFF8C8C8C),
                   ),
-                  suffixIcon: _isEditing ? const Icon(Icons.edit, size: 20) : null,
+                  suffixIcon: _isEditing
+                      ? const Icon(Icons.edit, size: 20)
+                      : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                   ),
                   filled: true,
-                  fillColor: _isEditing ? Colors.white : const Color(0xFFF9F9F9),
+                  fillColor: _isEditing
+                      ? Colors.white
+                      : const Color(0xFFF9F9F9),
                 ),
                 child: Text(
-                  _addressController.text.isEmpty ? 'Tap to select address' : _addressController.text,
+                  _addressController.text.isEmpty
+                      ? 'Tap to select address'
+                      : _addressController.text,
                   style: TextStyle(
-                    color: _addressController.text.isEmpty ? const Color(0xFF8C8C8C) : const Color(0xFF2E2E2E),
+                    color: _addressController.text.isEmpty
+                        ? const Color(0xFF8C8C8C)
+                        : const Color(0xFF2E2E2E),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -741,17 +775,16 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
   }
 
   Future<void> _showAddressManagement() async {
-    final selected = await Navigator.pushNamed(
-      context,
-      '/address-management',
-    );
-    
+    final selected = await Navigator.pushNamed(context, '/address-management');
+
     if (selected != null && selected is SavedAddress) {
       setState(() {
         _selectedAddress = selected;
         _addressController.text = selected.fullAddress;
         final addressParts = selected.fullAddress.split(',');
-        _cityController.text = addressParts.length > 1 ? addressParts.last.trim() : 'Dubai';
+        _cityController.text = addressParts.length > 1
+            ? addressParts.last.trim()
+            : 'Dubai';
       });
       _calculateProfileCompletion();
     }
@@ -768,7 +801,11 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               color: AppTheme.primaryBrown.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.email, color: AppTheme.primaryBrown, size: 20),
+            child: const Icon(
+              Icons.email,
+              color: AppTheme.primaryBrown,
+              size: 20,
+            ),
           ),
           title: const Text(
             'Email Notifications',
@@ -799,7 +836,11 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               color: AppTheme.primaryBrown.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.notifications, color: AppTheme.primaryBrown, size: 20),
+            child: const Icon(
+              Icons.notifications,
+              color: AppTheme.primaryBrown,
+              size: 20,
+            ),
           ),
           title: const Text(
             'Push Notifications',
@@ -958,12 +999,18 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.photo_library, color: AppTheme.primaryBrown),
+                leading: const Icon(
+                  Icons.photo_library,
+                  color: AppTheme.primaryBrown,
+                ),
                 title: const Text('Gallery'),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppTheme.primaryBrown),
+                leading: const Icon(
+                  Icons.camera_alt,
+                  color: AppTheme.primaryBrown,
+                ),
                 title: const Text('Camera'),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
@@ -986,12 +1033,14 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         // Validate file size (max 5MB)
         final file = File(image.path);
         final fileSize = await file.length();
-        
+
         if (fileSize > 5 * 1024 * 1024) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Image too large. Please select an image under 5MB.'),
+                content: Text(
+                  'Image too large. Please select an image under 5MB.',
+                ),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -1002,11 +1051,13 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         setState(() {
           _selectedImage = file;
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Image selected. Save changes to update your profile picture.'),
+              content: Text(
+                'Image selected. Save changes to update your profile picture.',
+              ),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
@@ -1019,9 +1070,10 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         if (e.code == 'camera_access_denied') {
           message = 'Camera permission denied. Please enable in settings.';
         } else if (e.code == 'photo_access_denied') {
-          message = 'Photo library permission denied. Please enable in settings.';
+          message =
+              'Photo library permission denied. Please enable in settings.';
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
@@ -1091,12 +1143,12 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         phone: phone.isNotEmpty ? phone : null,
         avatarFile: _selectedImage,
       );
-      
+
       // Save notification preferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('email_notifications', _emailNotifications);
       await prefs.setBool('push_notifications', _pushNotifications);
-      
+
       // Recalculate profile completion
       _calculateProfileCompletion();
 
@@ -1123,7 +1175,9 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -1133,7 +1187,9 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('No internet connection. Please check your network.'),
+            content: const Text(
+              'No internet connection. Please check your network.',
+            ),
             backgroundColor: Colors.red,
             action: SnackBarAction(
               label: 'Retry',
@@ -1162,7 +1218,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         } else if (e.toString().contains('unauthorized')) {
           errorMessage = 'Session expired. Please log in again.';
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
