@@ -97,8 +97,10 @@ class FirebaseAuthService {
       // Fetch user profile from backend MongoDB (has latest name, phone, avatar)
       try {
         final userApiService = UserApiService();
-        final backendUser = await userApiService.getMyProfile(firebaseToken: token);
-        
+        final backendUser = await userApiService.getMyProfile(
+          firebaseToken: token,
+        );
+
         // Return user with backend data (MongoDB has the latest profile)
         return auth_models.User(
           id: backendUser.id,

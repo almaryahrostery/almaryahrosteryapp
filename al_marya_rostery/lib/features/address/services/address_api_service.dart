@@ -7,7 +7,7 @@ import '../models/user_address.dart';
 
 class AddressApiService {
   final HybridAuthService _hybridAuth = HybridAuthService();
-  final String _baseUrl = '${AppConstants.baseUrl}/api/addresses';
+  final String _baseUrl = '${AppConstants.baseUrl}/api/users/me/addresses';
 
   /// Get all addresses for the current user
   Future<List<UserAddress>> getUserAddresses({

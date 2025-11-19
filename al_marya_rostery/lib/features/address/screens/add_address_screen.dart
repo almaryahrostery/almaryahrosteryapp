@@ -136,9 +136,9 @@ class _AddAddressScreenState extends State<AddAddressScreen>
 
       bool success;
       if (widget.isEditMode && widget.existingAddress != null) {
-        success = await addressProvider.updateAddress(address);
+        success = await addressProvider.updateAddressInBackend(address);
       } else {
-        success = await addressProvider.addAddress(address);
+        success = await addressProvider.createAddressInBackend(address);
       }
 
       if (success && mounted) {

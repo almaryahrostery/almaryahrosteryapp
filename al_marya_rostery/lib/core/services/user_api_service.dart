@@ -103,9 +103,7 @@ class UserApiService {
     try {
       final response = await _dio.get(
         '/auth/me',
-        options: Options(
-          headers: {'Authorization': 'Bearer $firebaseToken'},
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $firebaseToken'}),
       );
 
       if (response.data['success'] == true) {

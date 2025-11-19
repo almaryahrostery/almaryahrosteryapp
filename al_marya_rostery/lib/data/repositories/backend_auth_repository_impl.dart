@@ -39,7 +39,7 @@ class BackendAuthRepositoryImpl implements AuthRepository {
 
       if (response.statusCode == 200 && data['success'] == true) {
         final userData = data['data']['user'];
-        
+
         return User(
           id: userData['id'],
           name: userData['name'],
@@ -50,7 +50,7 @@ class BackendAuthRepositoryImpl implements AuthRepository {
           roles: (userData['roles'] as List?)?.cast<String>() ?? ['user'],
         );
       }
-      
+
       return null;
     } catch (e) {
       debugPrint('Error getting current user: $e');
