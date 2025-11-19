@@ -382,7 +382,8 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
           ),
           const SizedBox(height: 16),
           Text(
-            user.name ?? user.email?.split('@').first ?? 'User',
+            (user.name.isNotEmpty ? user.name : null) ?? 
+            user.email.split('@').first,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
