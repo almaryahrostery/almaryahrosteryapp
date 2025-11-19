@@ -117,7 +117,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    // ⚠️ IMPORTANT: DO NOT ADD AppBar TO THIS SCAFFOLD
+    // This page uses a custom header with floating back/favorite buttons
+    // over the product image for a modern, immersive design.
+    // The back button is in the Stack overlay, NOT in an AppBar.
     return Scaffold(
+      // NO appBar property - intentionally omitted for clean design
+      extendBodyBehindAppBar: true, // Ensure body extends to top
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
