@@ -7,7 +7,9 @@ class AddressApiService {
   final ApiClient _client = ApiClient();
 
   /// Get all addresses for current user
-  Future<List<SavedAddress>> getAddresses({required String firebaseToken}) async {
+  Future<List<SavedAddress>> getAddresses({
+    required String firebaseToken,
+  }) async {
     try {
       AppLogger.network('Fetching user addresses...', tag: 'AddressAPI');
 
@@ -46,7 +48,10 @@ class AddressApiService {
     required String firebaseToken,
   }) async {
     try {
-      AppLogger.network('Adding new address: ${address.name}', tag: 'AddressAPI');
+      AppLogger.network(
+        'Adding new address: ${address.name}',
+        tag: 'AddressAPI',
+      );
 
       _client.setAuthToken(firebaseToken);
       final response = await _client.post(
@@ -156,15 +161,23 @@ class AddressApiService {
     required String firebaseToken,
   }) async {
     try {
-      AppLogger.network('Setting default address: $addressId', tag: 'AddressAPI');
+      AppLogger.network(
+        'Setting default address: $addressId',
+        tag: 'AddressAPI',
+      );
 
       _client.setAuthToken(firebaseToken);
-      final response = await _client.put('/users/me/addresses/$addressId/default');
+      final response = await _client.put(
+        '/users/me/addresses/$addressId/default',
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         if (data['success'] == true) {
-          AppLogger.success('Default address set successfully', tag: 'AddressAPI');
+          AppLogger.success(
+            'Default address set successfully',
+            tag: 'AddressAPI',
+          );
           return SavedAddress.fromBackendJson(data['address']);
         } else {
           throw Exception(data['message'] ?? 'Failed to set default address');
@@ -174,7 +187,11 @@ class AddressApiService {
         throw Exception('Failed to set default address');
       }
     } catch (e) {
-      AppLogger.error('Error setting default address', tag: 'AddressAPI', error: e);
+      AppLogger.error(
+        'Error setting default address',
+        tag: 'AddressAPI',
+        error: e,
+      );
       rethrow;
     }
   }

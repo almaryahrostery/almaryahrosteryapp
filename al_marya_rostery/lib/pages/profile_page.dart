@@ -128,7 +128,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
             final addressParts = _selectedAddress!.fullAddress.split(',');
             _cityController.text = addressParts.length > 1
                 ? addressParts.last.trim()
-                : 'Dubai';
+                : '';
           }
         } catch (e) {
           debugPrint('Error loading addresses: $e');
@@ -151,7 +151,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
       _emailController.text = '';
       _phoneController.text = '';
       _addressController.text = '';
-      _cityController.text = 'Dubai';
+      _cityController.text = '';
     }
   }
 
@@ -667,13 +667,13 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               icon: Icons.language,
               title: 'Language',
               subtitle: 'English',
-              onTap: () => _showComingSoon('Language Settings'),
+              onTap: () => Navigator.pushNamed(context, '/settings'),
             ),
             _buildPreferenceItem(
               icon: Icons.dark_mode,
               title: 'Theme',
               subtitle: 'Light mode',
-              onTap: () => _showComingSoon('Theme Settings'),
+              onTap: () => Navigator.pushNamed(context, '/settings'),
             ),
           ],
         ),
@@ -703,19 +703,19 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
               icon: Icons.lock,
               title: 'Change Password',
               subtitle: 'Update your password',
-              onTap: () => _showComingSoon('Change Password'),
+              onTap: () => Navigator.pushNamed(context, '/change-password'),
             ),
             _buildActionItem(
               icon: Icons.security,
               title: 'Privacy Settings',
               subtitle: 'Manage your privacy preferences',
-              onTap: () => _showComingSoon('Privacy Settings'),
+              onTap: () => Navigator.pushNamed(context, '/settings'),
             ),
             _buildActionItem(
               icon: Icons.help,
               title: 'Help & Support',
               subtitle: 'Get help with your account',
-              onTap: () => _showComingSoon('Help & Support'),
+              onTap: () => Navigator.pushNamed(context, '/help-support'),
             ),
             _buildActionItem(
               icon: Icons.logout,
@@ -781,7 +781,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         final addressParts = selected.fullAddress.split(',');
         _cityController.text = addressParts.length > 1
             ? addressParts.last.trim()
-            : 'Dubai';
+            : '';
       });
       _calculateProfileCompletion();
     }
@@ -1228,15 +1228,6 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         );
       }
     }
-  }
-
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature - Coming Soon!'),
-        backgroundColor: const Color(0xFFFFA000),
-      ),
-    );
   }
 
   void _showSignOutDialog(AuthProvider authProvider) {

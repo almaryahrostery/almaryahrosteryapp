@@ -38,10 +38,17 @@ class AddressService {
       // Sort by creation date, most recent first
       _cachedAddresses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      AppLogger.info('Loaded ${_cachedAddresses.length} addresses from local cache', tag: 'AddressService');
+      AppLogger.info(
+        'Loaded ${_cachedAddresses.length} addresses from local cache',
+        tag: 'AddressService',
+      );
       return _cachedAddresses;
     } catch (e) {
-      AppLogger.error('Error loading addresses', tag: 'AddressService', error: e);
+      AppLogger.error(
+        'Error loading addresses',
+        tag: 'AddressService',
+        error: e,
+      );
       return _cachedAddresses; // Return cached addresses if available
     }
   }
@@ -56,7 +63,10 @@ class AddressService {
       // Get Firebase token
       final user = _auth.currentUser;
       if (user == null) {
-        AppLogger.warning('No user logged in, skipping backend sync', tag: 'AddressService');
+        AppLogger.warning(
+          'No user logged in, skipping backend sync',
+          tag: 'AddressService',
+        );
         return;
       }
 
@@ -67,15 +77,26 @@ class AddressService {
       }
 
       // Fetch addresses from backend
-      AppLogger.info('Syncing addresses with backend...', tag: 'AddressService');
-      final backendAddresses = await _apiService.getAddresses(firebaseToken: token);
+      AppLogger.info(
+        'Syncing addresses with backend...',
+        tag: 'AddressService',
+      );
+      final backendAddresses = await _apiService.getAddresses(
+        firebaseToken: token,
+      );
 
       // Update local cache with backend data
       await _updateLocalCache(backendAddresses);
 
-      AppLogger.success('Synced ${backendAddresses.length} addresses from backend', tag: 'AddressService');
+      AppLogger.success(
+        'Synced ${backendAddresses.length} addresses from backend',
+        tag: 'AddressService',
+      );
     } catch (e) {
-      AppLogger.warning('Backend sync failed, using local cache: $e', tag: 'AddressService');
+      AppLogger.warning(
+        'Backend sync failed, using local cache: $e',
+        tag: 'AddressService',
+      );
       // Continue with local cache if backend sync fails
     } finally {
       _syncInProgress = false;
@@ -86,21 +107,25 @@ class AddressService {
   Future<void> _updateLocalCache(List<SavedAddress> addresses) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final addressesJson = addresses.map((addr) => jsonEncode(addr.toJson())).toList();
+      final addressesJson = addresses
+          .map((addr) => jsonEncode(addr.toJson()))
+          .toList();
       await prefs.setStringList(_addressesKey, addressesJson);
 
       // Update default address if exists
       final defaultAddress = addresses.firstWhere(
         (addr) => addr.isDefault,
-        orElse: () => addresses.isNotEmpty ? addresses.first : SavedAddress(
-          id: '',
-          name: '',
-          fullAddress: '',
-          latitude: 0,
-          longitude: 0,
-          type: AddressType.other,
-          createdAt: DateTime.now(),
-        ),
+        orElse: () => addresses.isNotEmpty
+            ? addresses.first
+            : SavedAddress(
+                id: '',
+                name: '',
+                fullAddress: '',
+                latitude: 0,
+                longitude: 0,
+                type: AddressType.other,
+                createdAt: DateTime.now(),
+              ),
       );
 
       if (defaultAddress.id.isNotEmpty) {
@@ -109,9 +134,16 @@ class AddressService {
       }
 
       _cachedAddresses = addresses;
-      AppLogger.info('Updated local cache with ${addresses.length} addresses', tag: 'AddressService');
+      AppLogger.info(
+        'Updated local cache with ${addresses.length} addresses',
+        tag: 'AddressService',
+      );
     } catch (e) {
-      AppLogger.error('Error updating local cache', tag: 'AddressService', error: e);
+      AppLogger.error(
+        'Error updating local cache',
+        tag: 'AddressService',
+        error: e,
+      );
     }
   }
 
@@ -131,10 +163,16 @@ class AddressService {
 
             // Update local cache with backend response
             await _addToLocalCache(savedAddress);
-            AppLogger.success('Address saved to backend and local cache', tag: 'AddressService');
+            AppLogger.success(
+              'Address saved to backend and local cache',
+              tag: 'AddressService',
+            );
             return true;
           } catch (e) {
-            AppLogger.warning('Backend save failed, saving locally: $e', tag: 'AddressService');
+            AppLogger.warning(
+              'Backend save failed, saving locally: $e',
+              tag: 'AddressService',
+            );
             // Fall through to local save
           }
         }
@@ -179,7 +217,10 @@ class AddressService {
       _cachedAddresses.add(address);
       _cachedAddresses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      AppLogger.info('Address saved to local cache only', tag: 'AddressService');
+      AppLogger.info(
+        'Address saved to local cache only',
+        tag: 'AddressService',
+      );
       return true;
     } catch (e) {
       AppLogger.error('Error saving address', tag: 'AddressService', error: e);
@@ -204,7 +245,9 @@ class AddressService {
       addresses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       // Save back to preferences
-      final updatedJson = addresses.map((addr) => jsonEncode(addr.toJson())).toList();
+      final updatedJson = addresses
+          .map((addr) => jsonEncode(addr.toJson()))
+          .toList();
       await prefs.setStringList(_addressesKey, updatedJson);
 
       // Update cache
@@ -216,7 +259,11 @@ class AddressService {
         _defaultAddressId = address.id;
       }
     } catch (e) {
-      AppLogger.error('Error adding to local cache', tag: 'AddressService', error: e);
+      AppLogger.error(
+        'Error adding to local cache',
+        tag: 'AddressService',
+        error: e,
+      );
     }
   }
 
@@ -233,9 +280,15 @@ class AddressService {
               addressId: addressId,
               firebaseToken: token,
             );
-            AppLogger.success('Address deleted from backend', tag: 'AddressService');
+            AppLogger.success(
+              'Address deleted from backend',
+              tag: 'AddressService',
+            );
           } catch (e) {
-            AppLogger.warning('Backend delete failed: $e', tag: 'AddressService');
+            AppLogger.warning(
+              'Backend delete failed: $e',
+              tag: 'AddressService',
+            );
             // Continue with local delete
           }
         }
@@ -265,7 +318,11 @@ class AddressService {
       AppLogger.info('Address deleted from local cache', tag: 'AddressService');
       return true;
     } catch (e) {
-      AppLogger.error('Error deleting address', tag: 'AddressService', error: e);
+      AppLogger.error(
+        'Error deleting address',
+        tag: 'AddressService',
+        error: e,
+      );
       return false;
     }
   }
@@ -283,9 +340,15 @@ class AddressService {
               addressId: addressId,
               firebaseToken: token,
             );
-            AppLogger.success('Default address set in backend', tag: 'AddressService');
+            AppLogger.success(
+              'Default address set in backend',
+              tag: 'AddressService',
+            );
           } catch (e) {
-            AppLogger.warning('Backend setDefault failed: $e', tag: 'AddressService');
+            AppLogger.warning(
+              'Backend setDefault failed: $e',
+              tag: 'AddressService',
+            );
             // Continue with local update
           }
         }
@@ -296,9 +359,16 @@ class AddressService {
       await prefs.setString(_defaultAddressKey, addressId);
       _defaultAddressId = addressId;
 
-      AppLogger.info('Default address set locally: $addressId', tag: 'AddressService');
+      AppLogger.info(
+        'Default address set locally: $addressId',
+        tag: 'AddressService',
+      );
     } catch (e) {
-      AppLogger.error('Error setting default address', tag: 'AddressService', error: e);
+      AppLogger.error(
+        'Error setting default address',
+        tag: 'AddressService',
+        error: e,
+      );
     }
   }
 
