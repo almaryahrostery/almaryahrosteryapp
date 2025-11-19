@@ -1,46 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:provider/provider.dart';
+import '../../../../providers/address_provider.dart';
+import '../../../../models/saved_address.dart';
 import '../../../../core/theme/app_theme.dart';
-
-class Address {
-  final String id;
-  final String title;
-  final String fullName;
-  final String phoneNumber;
-  final String emirate;
-  final String area;
-  final String street;
-  final String building;
-  final String? apartment;
-  final String? landmark;
-  final bool isDefault;
-
-  Address({
-    required this.id,
-    required this.title,
-    required this.fullName,
-    required this.phoneNumber,
-    required this.emirate,
-    required this.area,
-    required this.street,
-    required this.building,
-    this.apartment,
-    this.landmark,
-    this.isDefault = false,
-  });
-
-  String get formattedAddress {
-    final parts = [
-      building,
-      if (apartment != null && apartment!.isNotEmpty) 'Apt $apartment',
-      street,
-      area,
-      emirate,
-    ];
-    return parts.join(', ');
-  }
-}
+import 'package:geolocator/geolocator.dart';
 
 class AddressManagementPage extends StatefulWidget {
   const AddressManagementPage({super.key});
@@ -50,150 +13,158 @@ class AddressManagementPage extends StatefulWidget {
 }
 
 class _AddressManagementPageState extends State<AddressManagementPage> {
-  List<Address> _addresses = [];
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    _loadAddresses();
-  }
-
-  void _loadAddresses() {
-    // Load addresses from storage or API - starting with empty list for new users
-    setState(() {
-      _addresses = []; // No mock addresses - user will add their own
-      _isLoading = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AddressProvider>(context, listen: false).loadSavedAddresses();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'My Addresses',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppTheme.primaryBrown,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primaryBrown),
-            )
-          : _buildContent(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToAddAddress(),
-        backgroundColor: AppTheme.primaryBrown,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (_addresses.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return Column(
-      children: [
-        // Address Count Header
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          color: AppTheme.backgroundCream,
-          child: Text(
-            '${_addresses.length} ${_addresses.length == 1 ? 'Address' : 'Addresses'} Saved',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppTheme.textDark,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-
-        // Address List
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _addresses.length,
-            itemBuilder: (context, index) {
-              return _buildAddressCard(_addresses[index]);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.location_off, size: 80, color: AppTheme.textLight),
-            const SizedBox(height: 24),
-            Text(
-              'No Addresses Yet',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppTheme.textDark,
+    return Consumer<AddressProvider>(
+      builder: (context, addressProvider, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              'Manage Addresses',
+              style: TextStyle(
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            backgroundColor: AppTheme.primaryBrown,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () => addressProvider.loadSavedAddresses(),
+              ),
+            ],
+          ),
+          body: _buildContent(addressProvider),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _navigateToAddAddress(addressProvider),
+            backgroundColor: AppTheme.primaryBrown,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Address'),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent(AddressProvider addressProvider) {
+    if (addressProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (addressProvider.error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
             Text(
-              'Add your delivery addresses to make checkout faster and easier.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(color: AppTheme.textMedium),
+              'Error: ${addressProvider.error}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => addressProvider.loadSavedAddresses(),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final addresses = addressProvider.savedAddresses;
+
+    if (addresses.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.location_off, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No saved addresses',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add your delivery addresses for faster checkout',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () => _navigateToAddAddress(),
-              icon: const Icon(Icons.add_location),
+              onPressed: () => _navigateToAddAddress(addressProvider),
+              icon: const Icon(Icons.add),
               label: const Text('Add Address'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBrown,
-                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
+                  horizontal: 32,
                   vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
           ],
         ),
-      ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: addresses.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        return _buildAddressCard(addresses[index], addressProvider);
+      },
     );
   }
 
-  Widget _buildAddressCard(Address address) {
+  Widget _buildAddressCard(SavedAddress address, AddressProvider provider) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: address.isDefault
+            ? BorderSide(color: AppTheme.primaryBrown, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Address Title and Default Badge
             Row(
               children: [
+                Icon(
+                  address.type == AddressType.home
+                      ? Icons.home
+                      : address.type == AddressType.work
+                      ? Icons.work
+                      : Icons.location_on,
+                  color: AppTheme.primaryBrown,
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    address.title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    address.name,
+                    style: const TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.textDark,
                     ),
                   ),
                 ),
@@ -204,81 +175,45 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.accentAmber.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppTheme.primaryBrown,
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text(
+                    child: const Text(
                       'DEFAULT',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.accentAmber,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
               ],
             ),
-
             const SizedBox(height: 12),
-
-            // Name and Phone
-            Row(
-              children: [
-                const Icon(Icons.person, size: 16, color: AppTheme.textMedium),
-                const SizedBox(width: 8),
-                Text(
-                  address.fullName,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textDark,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Icon(Icons.phone, size: 16, color: AppTheme.textMedium),
-                const SizedBox(width: 8),
-                Text(
-                  address.phoneNumber,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMedium),
-                ),
-              ],
+            Text(
+              address.fullAddress,
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             ),
-
-            const SizedBox(height: 8),
-
-            // Address
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.location_on,
-                  size: 16,
-                  color: AppTheme.textMedium,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    address.formattedAddress,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textMedium,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
+            if (address.buildingDetails != null &&
+                address.buildingDetails!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                address.buildingDetails!,
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+            ],
             if (address.landmark != null && address.landmark!.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.place, size: 16, color: AppTheme.textMedium),
-                  const SizedBox(width: 8),
+                  Icon(Icons.near_me, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'Landmark: ${address.landmark}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textLight,
+                      address.landmark!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -286,53 +221,30 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
                 ],
               ),
             ],
-
             const SizedBox(height: 16),
-
-            // Action Buttons
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (!address.isDefault)
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _setAsDefault(address),
-                      icon: const Icon(Icons.star_border, size: 18),
-                      label: const Text('Set as Default'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primaryBrown,
-                        side: const BorderSide(color: AppTheme.primaryBrown),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (!address.isDefault) const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _navigateToEditAddress(address),
-                    icon: const Icon(Icons.edit, size: 18),
-                    label: const Text('Edit'),
-                    style: OutlinedButton.styleFrom(
+                  TextButton.icon(
+                    onPressed: () => _setAsDefault(address.id, provider),
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: const Text('Set as Default'),
+                    style: TextButton.styleFrom(
                       foregroundColor: AppTheme.primaryBrown,
-                      side: const BorderSide(color: AppTheme.primaryBrown),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
                     ),
                   ),
+                TextButton.icon(
+                  onPressed: () => _navigateToEditAddress(address, provider),
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Edit'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.blue),
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    onPressed: () => _deleteAddress(address),
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    tooltip: 'Delete address',
-                  ),
+                TextButton.icon(
+                  onPressed: () => _deleteAddress(address.id, provider),
+                  icon: const Icon(Icons.delete, size: 18),
+                  label: const Text('Delete'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
                 ),
               ],
             ),
@@ -342,143 +254,111 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
     );
   }
 
-  void _navigateToAddAddress() {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(builder: (context) => const AddEditAddressPage()),
-        )
-        .then((result) {
-          if (result == true) {
-            _loadAddresses(); // Reload addresses after adding
-          }
-        });
+  Future<void> _navigateToAddAddress(AddressProvider provider) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddEditAddressPage()),
+    );
+
+    if (result == true) {
+      provider.loadSavedAddresses();
+    }
   }
 
-  void _navigateToEditAddress(Address address) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (context) => AddEditAddressPage(address: address),
-          ),
-        )
-        .then((result) {
-          if (result == true) {
-            _loadAddresses(); // Reload addresses after editing
-          }
-        });
-  }
-
-  void _setAsDefault(Address address) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Set as Default'),
-        content: Text('Make "${address.title}" your default delivery address?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                // Remove default from all addresses
-                for (int i = 0; i < _addresses.length; i++) {
-                  _addresses[i] = Address(
-                    id: _addresses[i].id,
-                    title: _addresses[i].title,
-                    fullName: _addresses[i].fullName,
-                    phoneNumber: _addresses[i].phoneNumber,
-                    emirate: _addresses[i].emirate,
-                    area: _addresses[i].area,
-                    street: _addresses[i].street,
-                    building: _addresses[i].building,
-                    apartment: _addresses[i].apartment,
-                    landmark: _addresses[i].landmark,
-                    isDefault: _addresses[i].id == address.id,
-                  );
-                }
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${address.title} is now your default address'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBrown,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Set Default'),
-          ),
-        ],
+  Future<void> _navigateToEditAddress(
+    SavedAddress address,
+    AddressProvider provider,
+  ) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditAddressPage(address: address),
       ),
     );
+
+    if (result == true) {
+      provider.loadSavedAddresses();
+    }
   }
 
-  void _deleteAddress(Address address) {
-    showDialog(
+  Future<void> _setAsDefault(String addressId, AddressProvider provider) async {
+    try {
+      final address = provider.savedAddresses.firstWhere(
+        (a) => a.id == addressId,
+      );
+      await provider.setDefaultAddress(address);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Default address updated'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to set default: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAddress(
+    String addressId,
+    AddressProvider provider,
+  ) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Address'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Are you sure you want to delete "${address.title}"?'),
-            const SizedBox(height: 8),
-            Text(
-              address.formattedAddress,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.textMedium),
-            ),
-          ],
-        ),
+        content: const Text('Are you sure you want to delete this address?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _addresses.removeWhere((addr) => addr.id == address.id);
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${address.title} deleted'),
-                  backgroundColor: Colors.orange,
-                  action: SnackBarAction(
-                    label: 'Undo',
-                    textColor: Colors.white,
-                    onPressed: () {
-                      setState(() {
-                        _addresses.add(address);
-                      });
-                    },
-                  ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+
+    if (confirmed == true) {
+      try {
+        await provider.deleteAddress(addressId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Address deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete address: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }
 
-// Add/Edit Address Page
+// ==================== Add/Edit Address Page ====================
+
 class AddEditAddressPage extends StatefulWidget {
-  final Address? address;
+  final SavedAddress? address;
 
   const AddEditAddressPage({super.key, this.address});
 
@@ -488,19 +368,17 @@ class AddEditAddressPage extends StatefulWidget {
 
 class _AddEditAddressPageState extends State<AddEditAddressPage> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _fullNameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _areaController = TextEditingController();
-  final _streetController = TextEditingController();
-  final _buildingController = TextEditingController();
-  final _apartmentController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _buildingDetailsController = TextEditingController();
   final _landmarkController = TextEditingController();
 
-  String _selectedEmirate = 'Dubai';
+  AddressType _selectedType = AddressType.home;
   bool _isDefault = false;
   bool _isLoading = false;
   bool _isLoadingLocation = false;
+  double? _latitude;
+  double? _longitude;
 
   @override
   void initState() {
@@ -512,27 +390,21 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
 
   void _loadAddressData() {
     final address = widget.address!;
-    _titleController.text = address.title;
-    _fullNameController.text = address.fullName;
-    _phoneController.text = address.phoneNumber;
-    _selectedEmirate = address.emirate;
-    _areaController.text = address.area;
-    _streetController.text = address.street;
-    _buildingController.text = address.building;
-    _apartmentController.text = address.apartment ?? '';
+    _nameController.text = address.name;
+    _addressController.text = address.fullAddress;
+    _buildingDetailsController.text = address.buildingDetails ?? '';
     _landmarkController.text = address.landmark ?? '';
+    _selectedType = address.type;
     _isDefault = address.isDefault;
+    _latitude = address.latitude;
+    _longitude = address.longitude;
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _fullNameController.dispose();
-    _phoneController.dispose();
-    _areaController.dispose();
-    _streetController.dispose();
-    _buildingController.dispose();
-    _apartmentController.dispose();
+    _nameController.dispose();
+    _addressController.dispose();
+    _buildingDetailsController.dispose();
     _landmarkController.dispose();
     super.dispose();
   }
@@ -562,15 +434,15 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Address Label
+                // Address Name
                 _buildTextField(
-                  controller: _titleController,
-                  label: 'Address Label',
+                  controller: _nameController,
+                  label: 'Address Name',
                   icon: Icons.label,
                   hint: 'e.g. Home, Office, etc.',
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter an address label';
+                      return 'Please enter an address name';
                     }
                     return null;
                   },
@@ -578,17 +450,21 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
 
                 const SizedBox(height: 16),
 
-                // Contact Information Section
-                _buildSectionHeader('Contact Information'),
+                // Address Type
+                _buildTypeSelector(),
+
                 const SizedBox(height: 16),
 
+                // Full Address
                 _buildTextField(
-                  controller: _fullNameController,
-                  label: 'Full Name',
-                  icon: Icons.person,
+                  controller: _addressController,
+                  label: 'Full Address',
+                  icon: Icons.location_on,
+                  hint: 'Street, Area, City, Emirates',
+                  maxLines: 3,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter the recipient name';
+                      return 'Please enter the full address';
                     }
                     return null;
                   },
@@ -596,185 +472,40 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
 
                 const SizedBox(height: 16),
 
+                // Building Details
                 _buildTextField(
-                  controller: _phoneController,
-                  label: 'Phone Number',
-                  icon: Icons.phone,
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a phone number';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                // Address Details Section
-                _buildSectionHeader('Address Details'),
-                const SizedBox(height: 16),
-
-                // Use Current Location Button
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoadingLocation ? null : _useCurrentLocation,
-                    icon: _isLoadingLocation
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppTheme.primaryBrown,
-                              ),
-                            ),
-                          )
-                        : const Icon(Icons.my_location, size: 18),
-                    label: Text(
-                      _isLoadingLocation
-                          ? 'Detecting Location...'
-                          : 'Use My Current Location',
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primaryBrown,
-                      side: const BorderSide(color: AppTheme.primaryBrown),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Emirate Dropdown
-                _buildEmirateDropdown(),
-
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _areaController,
-                  label: 'Area/District',
-                  icon: Icons.location_city,
-                  hint: 'e.g. Business Bay, JLT, etc.',
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter the area';
-                    }
-                    return null;
-                  },
+                  controller: _buildingDetailsController,
+                  label: 'Building/Apartment Details',
+                  icon: Icons.apartment,
+                  hint: 'e.g. Building 5, Apt 302',
+                  required: false,
                 ),
 
                 const SizedBox(height: 16),
 
-                _buildTextField(
-                  controller: _streetController,
-                  label: 'Street',
-                  icon: Icons.streetview,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter the street';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _buildingController,
-                  label: 'Building Name/Number',
-                  icon: Icons.business,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter the building';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _apartmentController,
-                  label: 'Apartment/Office Number',
-                  icon: Icons.door_front_door,
-                  hint: 'Optional',
-                ),
-
-                const SizedBox(height: 16),
-
+                // Landmark
                 _buildTextField(
                   controller: _landmarkController,
-                  label: 'Landmark',
-                  icon: Icons.place,
-                  hint: 'Optional - to help delivery find you',
+                  label: 'Nearby Landmark',
+                  icon: Icons.near_me,
+                  hint: 'e.g. Near Mall of Emirates',
+                  required: false,
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // Get Current Location Button
+                _buildLocationButton(),
+
+                const SizedBox(height: 16),
 
                 // Set as Default
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: SwitchListTile(
-                    title: const Text(
-                      'Set as Default Address',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: const Text(
-                      'Use this address for future orders',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    value: _isDefault,
-                    onChanged: (value) {
-                      setState(() {
-                        _isDefault = value;
-                      });
-                    },
-                    activeColor: AppTheme.primaryBrown,
-                  ),
-                ),
+                _buildDefaultCheckbox(),
 
                 const SizedBox(height: 32),
 
                 // Save Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveAddress,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBrown,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : Text(
-                            isEditing ? 'Update Address' : 'Save Address',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
+                _buildSaveButton(isEditing),
               ],
             ),
           ),
@@ -783,214 +514,238 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.bold,
-        color: AppTheme.textDark,
-      ),
-    );
-  }
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    String? hint,
-    TextInputType? keyboardType,
+    required String hint,
+    int maxLines = 1,
+    bool required = true,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
+      maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
         prefixIcon: Icon(icon, color: AppTheme.primaryBrown),
-        border: OutlineInputBorder(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppTheme.textLight.withValues(alpha: 0.3),
-          ),
+          borderSide: BorderSide(color: Colors.grey[300]!),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primaryBrown, width: 2),
+          borderSide: BorderSide(color: AppTheme.primaryBrown, width: 2),
         ),
-        filled: true,
-        fillColor: AppTheme.backgroundCream,
+      ),
+      validator:
+          validator ??
+          (required
+              ? (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'This field is required';
+                  }
+                  return null;
+                }
+              : null),
+    );
+  }
+
+  Widget _buildTypeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Address Type',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTypeOption(AddressType.home, Icons.home, 'Home'),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTypeOption(AddressType.work, Icons.work, 'Work'),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTypeOption(
+                AddressType.other,
+                Icons.location_on,
+                'Other',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeOption(AddressType type, IconData icon, String label) {
+    final isSelected = _selectedType == type;
+    return InkWell(
+      onTap: () => setState(() => _selectedType = type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryBrown.withOpacity(0.1)
+              : Colors.grey[100],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryBrown : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppTheme.primaryBrown : Colors.grey[600],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? AppTheme.primaryBrown : Colors.grey[600],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildEmirateDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedEmirate,
-      decoration: InputDecoration(
-        labelText: 'Emirate',
-        prefixIcon: const Icon(Icons.location_on, color: AppTheme.primaryBrown),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppTheme.textLight.withValues(alpha: 0.3),
-          ),
+  Widget _buildLocationButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _isLoadingLocation ? null : _getCurrentLocation,
+        icon: _isLoadingLocation
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.my_location),
+        label: Text(
+          _isLoadingLocation
+              ? 'Getting location...'
+              : _latitude != null
+              ? 'Location Added ✓'
+              : 'Use Current Location',
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primaryBrown, width: 2),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.primaryBrown,
+          side: BorderSide(color: AppTheme.primaryBrown),
+          padding: const EdgeInsets.symmetric(vertical: 12),
         ),
-        filled: true,
-        fillColor: AppTheme.backgroundCream,
       ),
-      items:
-          [
-            'Dubai',
-            'Abu Dhabi',
-            'Sharjah',
-            'Ajman',
-            'Ras Al Khaimah',
-            'Fujairah',
-            'Umm Al Quwain',
-          ].map((emirate) {
-            return DropdownMenuItem(value: emirate, child: Text(emirate));
-          }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedEmirate = value!;
-        });
-      },
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please select an emirate';
-        }
-        return null;
-      },
     );
   }
 
-  Future<void> _useCurrentLocation() async {
-    setState(() {
-      _isLoadingLocation = true;
-    });
+  Widget _buildDefaultCheckbox() {
+    return InkWell(
+      onTap: () => setState(() => _isDefault = !_isDefault),
+      child: Row(
+        children: [
+          Checkbox(
+            value: _isDefault,
+            onChanged: (value) => setState(() => _isDefault = value ?? false),
+            activeColor: AppTheme.primaryBrown,
+          ),
+          const Text('Set as default address', style: TextStyle(fontSize: 16)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSaveButton(bool isEditing) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _saveAddress,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primaryBrown,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(
+                isEditing ? 'Update Address' : 'Save Address',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLoadingLocation = true);
 
     try {
-      // Check location permissions
+      // Check location permission
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Location permissions are denied');
+          throw Exception('Location permission denied');
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        throw Exception(
-          'Location permissions are permanently denied, we cannot request permissions.',
-        );
+        throw Exception('Location permissions are permanently denied');
       }
 
       // Get current position
-      Position position = await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // Get address from coordinates
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
+      setState(() {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+      });
 
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-
-        // Auto-fill the form with detected location
-        setState(() {
-          if (place.administrativeArea != null) {
-            // Map the administrative area to UAE emirate
-            String detectedEmirate = _mapToEmirate(place.administrativeArea!);
-            _selectedEmirate = detectedEmirate;
-          }
-
-          if (place.subLocality != null && place.subLocality!.isNotEmpty) {
-            _areaController.text = place.subLocality!;
-          } else if (place.locality != null && place.locality!.isNotEmpty) {
-            _areaController.text = place.locality!;
-          }
-
-          if (place.thoroughfare != null && place.thoroughfare!.isNotEmpty) {
-            _streetController.text = place.thoroughfare!;
-          }
-
-          if (place.subThoroughfare != null &&
-              place.subThoroughfare!.isNotEmpty) {
-            _buildingController.text = place.subThoroughfare!;
-          }
-
-          // Set landmark if available
-          if (place.name != null &&
-              place.name!.isNotEmpty &&
-              place.name != place.thoroughfare) {
-            _landmarkController.text = place.name!;
-          }
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Location detected successfully! Please verify and complete the address details.',
-              ),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-      } else {
-        throw Exception('Could not determine address from location');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location added successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to get location: ${e.toString()}'),
+            content: Text('Failed to get location: $e'),
             backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: 'Settings',
-              textColor: Colors.white,
-              onPressed: () {
-                Geolocator.openAppSettings();
-              },
-            ),
           ),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingLocation = false;
-        });
-      }
+      setState(() => _isLoadingLocation = false);
     }
-  }
-
-  String _mapToEmirate(String administrativeArea) {
-    // Map common variations to UAE emirate names
-    final emirateMap = {
-      'dubai': 'Dubai',
-      'abu dhabi': 'Abu Dhabi',
-      'sharjah': 'Sharjah',
-      'ajman': 'Ajman',
-      'ras al khaimah': 'Ras Al Khaimah',
-      'rak': 'Ras Al Khaimah',
-      'fujairah': 'Fujairah',
-      'umm al quwain': 'Umm Al Quwain',
-      'uaq': 'Umm Al Quwain',
-    };
-
-    String normalized = administrativeArea.toLowerCase();
-    return emirateMap[normalized] ?? 'Dubai'; // Default to Dubai if not found
   }
 
   Future<void> _saveAddress() async {
@@ -998,13 +753,39 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Note: Implement API call to save address
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+      final addressProvider = Provider.of<AddressProvider>(
+        context,
+        listen: false,
+      );
+
+      final address = SavedAddress(
+        id:
+            widget.address?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
+        name: _nameController.text.trim(),
+        fullAddress: _addressController.text.trim(),
+        latitude:
+            _latitude ?? 25.2048, // Default to Dubai coordinates if no location
+        longitude: _longitude ?? 55.2708,
+        type: _selectedType,
+        buildingDetails: _buildingDetailsController.text.trim().isEmpty
+            ? null
+            : _buildingDetailsController.text.trim(),
+        landmark: _landmarkController.text.trim().isEmpty
+            ? null
+            : _landmarkController.text.trim(),
+        createdAt: widget.address?.createdAt ?? DateTime.now(),
+        isDefault: _isDefault,
+      );
+
+      await addressProvider.addAddress(address);
+
+      if (_isDefault) {
+        await addressProvider.setDefaultAddress(address);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1017,7 +798,7 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -1030,9 +811,7 @@ class _AddEditAddressPageState extends State<AddEditAddressPage> {
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }

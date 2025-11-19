@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../providers/location_provider.dart';
+import '../../../../models/saved_address.dart';
 import '../../../account/presentation/pages/address_management_page.dart';
 
 class LocationPickerDialog extends StatefulWidget {
@@ -13,10 +14,10 @@ class LocationPickerDialog extends StatefulWidget {
 
 class _LocationPickerDialogState extends State<LocationPickerDialog> {
   String _selectedLocationType = 'current'; // current, home, work, other
-  Address? _selectedAddress;
+  SavedAddress? _selectedAddress;
 
   // No mock addresses - get from actual user provider/address service
-  final List<Address> _savedAddresses = [];
+  final List<SavedAddress> _savedAddresses = [];
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +106,7 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
                     ..._savedAddresses
                         .where(
                           (addr) =>
-                              addr.title != 'Home' && addr.title != 'Work',
+                              addr.name != 'Home' && addr.name != 'Work',
                         )
                         .map(
                           (addr) => Padding(
@@ -250,7 +251,7 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
     );
   }
 
-  Widget _buildAddressOption(Address address) {
+  Widget _buildAddressOption(SavedAddress address) {
     final isSelected =
         _selectedLocationType == 'address' &&
         _selectedAddress?.id == address.id;
@@ -280,13 +281,13 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: _getAddressIconColor(
-                  address.title,
+                  address.name,
                 ).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                _getAddressIcon(address.title),
-                color: _getAddressIconColor(address.title),
+                address.type.icon,
+                color: _getAddressIconColor(address.name),
                 size: 20,
               ),
             ),
@@ -298,7 +299,7 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
                   Row(
                     children: [
                       Text(
-                        address.title,
+                        address.name,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -332,23 +333,24 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${address.area}, ${address.emirate}',
+                    address.fullAddress,
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppTheme.textMedium,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    address.formattedAddress,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textLight,
-                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (address.buildingDetails?.isNotEmpty ?? false)
+                    Text(
+                      address.buildingDetails!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textLight,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
@@ -364,23 +366,11 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
     );
   }
 
-  Address? _getAddressByTitle(String title) {
+  SavedAddress? _getAddressByTitle(String title) {
     try {
-      return _savedAddresses.firstWhere((addr) => addr.title == title);
+      return _savedAddresses.firstWhere((addr) => addr.name.toLowerCase() == title.toLowerCase());
     } catch (e) {
       return null;
-    }
-  }
-
-  IconData _getAddressIcon(String title) {
-    switch (title.toLowerCase()) {
-      case 'home':
-        return Icons.home;
-      case 'work':
-      case 'office':
-        return Icons.business;
-      default:
-        return Icons.location_on;
     }
   }
 
@@ -409,8 +399,8 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
     } else if (_selectedLocationType == 'address' && _selectedAddress != null) {
       // Use selected address
       final locationText =
-          '${_selectedAddress!.area}, ${_selectedAddress!.emirate}';
-      locationProvider.setManualLocation(locationText, _selectedAddress!.title);
+          _selectedAddress!.fullAddress;
+      locationProvider.setManualLocation(locationText, _selectedAddress!.name);
       Navigator.of(context).pop();
     }
   }
