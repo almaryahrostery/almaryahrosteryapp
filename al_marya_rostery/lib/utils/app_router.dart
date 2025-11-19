@@ -322,7 +322,7 @@ class AppRouter {
           AppLogger.debug(
             '✅ App Router: Creating ProductDetailPage with product: ${product.name}',
           );
-          return _buildRoute(
+          return _buildRouteWithPersistentNav(
             ProductDetailPage(product: product),
             settings: settings,
           );

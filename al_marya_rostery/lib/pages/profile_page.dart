@@ -86,10 +86,8 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
   bool _isLoading = false;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  bool _notificationsEnabled = true;
   bool _emailNotifications = true;
   bool _pushNotifications = true;
-  List<SavedAddress> _savedAddresses = [];
   SavedAddress? _selectedAddress;
   double _profileCompletion = 0.0;
 
@@ -122,7 +120,6 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         // Load saved addresses
         try {
           final addressService = AddressService();
-          _savedAddresses = await addressService.getSavedAddresses();
           _selectedAddress = await addressService.getDefaultAddress();
 
           if (_selectedAddress != null) {
@@ -142,7 +139,6 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
         setState(() {
           _emailNotifications = prefs.getBool('email_notifications') ?? true;
           _pushNotifications = prefs.getBool('push_notifications') ?? true;
-          _notificationsEnabled = _emailNotifications || _pushNotifications;
         });
 
         // Calculate profile completion
@@ -398,7 +394,7 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
                 user.email ?? '',
                 style: const TextStyle(fontSize: 14, color: Color(0xFF8C8C8C)),
               ),
-              if (user.emailVerified ?? false) ...[
+              if (user.isEmailVerified) ...[
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -824,7 +820,6 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
           onChanged: (value) {
             setState(() {
               _emailNotifications = value;
-              _notificationsEnabled = _emailNotifications || _pushNotifications;
             });
           },
         ),
@@ -859,7 +854,6 @@ class _ProfilePageContentState extends State<_ProfilePageContent> {
           onChanged: (value) {
             setState(() {
               _pushNotifications = value;
-              _notificationsEnabled = _emailNotifications || _pushNotifications;
             });
           },
         ),
