@@ -745,27 +745,6 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
-module.exports = {
-  getUsers,
-  getUser,
-  updateUser,
-  deleteUser,
-  getUserStats,
-  createUser,
-  bulkUpdateUsers,
-  toggleUserStatus,
-  updateUserRoles,
-  getUserActivity,
-  exportUsers,
-  updateMyProfile,
-  // Address management
-  getMyAddresses,
-  addAddress,
-  updateAddress,
-  deleteAddress,
-  setDefaultAddress
-};
-
 // @desc    Get my addresses
 // @route   GET /api/users/me/addresses
 // @access  Private
@@ -1020,4 +999,25 @@ const setDefaultAddress = async (req, res) => {
       error: error.message
     });
   }
+};
+
+module.exports = {
+  getUsers,
+  getUser,
+  updateUser,
+  deleteUser,
+  getUserStats,
+  createUser,
+  bulkUpdateUsers,
+  toggleUserStatus,
+  updateUserRoles,
+  getUserActivity,
+  exportUsers,
+  updateMyProfile,
+  // Address management
+  getMyAddresses,
+  addAddress,
+  updateAddress,
+  deleteAddress,
+  setDefaultAddress
 };
