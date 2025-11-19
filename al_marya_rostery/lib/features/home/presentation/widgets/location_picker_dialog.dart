@@ -105,8 +105,7 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
                     // Other addresses
                     ..._savedAddresses
                         .where(
-                          (addr) =>
-                              addr.name != 'Home' && addr.name != 'Work',
+                          (addr) => addr.name != 'Home' && addr.name != 'Work',
                         )
                         .map(
                           (addr) => Padding(
@@ -368,7 +367,9 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
 
   SavedAddress? _getAddressByTitle(String title) {
     try {
-      return _savedAddresses.firstWhere((addr) => addr.name.toLowerCase() == title.toLowerCase());
+      return _savedAddresses.firstWhere(
+        (addr) => addr.name.toLowerCase() == title.toLowerCase(),
+      );
     } catch (e) {
       return null;
     }
@@ -398,8 +399,7 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
       Navigator.of(context).pop();
     } else if (_selectedLocationType == 'address' && _selectedAddress != null) {
       // Use selected address
-      final locationText =
-          _selectedAddress!.fullAddress;
+      final locationText = _selectedAddress!.fullAddress;
       locationProvider.setManualLocation(locationText, _selectedAddress!.name);
       Navigator.of(context).pop();
     }

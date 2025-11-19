@@ -46,12 +46,28 @@ class AddressProvider extends ChangeNotifier {
   /// Load all saved addresses
   Future<void> loadSavedAddresses() async {
     try {
+      AppLogger.info('[AddressProvider] 🔄 Loading saved addresses...');
       _setLoading(true);
       _clearError();
 
       _savedAddresses = await _addressService.getSavedAddresses();
+      AppLogger.info(
+        '[AddressProvider] ✅ Loaded ${_savedAddresses.length} addresses',
+      );
+
+      if (_savedAddresses.isNotEmpty) {
+        for (var addr in _savedAddresses) {
+          AppLogger.debug(
+            '[AddressProvider] 📍 Address: ${addr.name} - ${addr.fullAddress}',
+          );
+        }
+      } else {
+        AppLogger.warning('[AddressProvider] ⚠️ No addresses found in storage');
+      }
+
       notifyListeners();
     } catch (e) {
+      AppLogger.error('[AddressProvider] ❌ Error loading addresses: $e');
       _setError('Failed to load saved addresses: ${e.toString()}');
     } finally {
       _setLoading(false);
@@ -81,12 +97,16 @@ class AddressProvider extends ChangeNotifier {
   /// Add a new address
   Future<bool> addAddress(SavedAddress address) async {
     try {
+      AppLogger.info(
+        '[AddressProvider] 💾 Adding new address: ${address.name}',
+      );
       _setLoading(true);
       _clearError();
 
       final success = await _addressService.saveAddress(address);
 
       if (success) {
+        AppLogger.info('[AddressProvider] ✅ Address saved successfully');
         _savedAddresses.add(address);
         _savedAddresses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -96,15 +116,22 @@ class AddressProvider extends ChangeNotifier {
           _defaultAddress = address;
         }
 
+        AppLogger.info(
+          '[AddressProvider] 📊 Total addresses now: ${_savedAddresses.length}',
+        );
         notifyListeners();
         return true;
       } else {
+        AppLogger.warning(
+          '[AddressProvider] ⚠️ Address save failed - duplicate detected',
+        );
         _setError(
           'Address with this name already exists or location is too close to an existing address',
         );
         return false;
       }
     } catch (e) {
+      AppLogger.error('[AddressProvider] ❌ Error adding address: $e');
       _setError('Failed to save address: ${e.toString()}');
       return false;
     } finally {
