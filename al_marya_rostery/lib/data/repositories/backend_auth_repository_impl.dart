@@ -22,9 +22,40 @@ class BackendAuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<User?> getCurrentUser() async {
-    // Get current user from backend
-    // This will be implemented
-    return null;
+    try {
+      // Get auth token from storage
+      final token = await _tokenService.getAccessToken();
+      if (token == null) return null;
+
+      final response = await _httpClient.get(
+        Uri.parse('$_baseUrl/api/auth/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        final userData = data['data']['user'];
+        
+        return User(
+          id: userData['id'],
+          name: userData['name'],
+          email: userData['email'],
+          phone: userData['phone'],
+          avatar: userData['avatar'],
+          isEmailVerified: userData['isEmailVerified'] ?? false,
+          roles: (userData['roles'] as List?)?.cast<String>() ?? ['user'],
+        );
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error getting current user: $e');
+      return null;
+    }
   }
 
   @override

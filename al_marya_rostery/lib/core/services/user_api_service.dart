@@ -98,6 +98,28 @@ class UserApiService {
     }
   }
 
+  /// Get current authenticated user profile from backend
+  Future<UserModel> getMyProfile({required String firebaseToken}) async {
+    try {
+      final response = await _dio.get(
+        '/auth/me',
+        options: Options(
+          headers: {'Authorization': 'Bearer $firebaseToken'},
+        ),
+      );
+
+      if (response.data['success'] == true) {
+        return UserModel.fromJson(response.data['data']);
+      } else {
+        throw Exception('Failed to fetch profile');
+      }
+    } on DioException catch (e) {
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      throw Exception('Error fetching profile: $e');
+    }
+  }
+
   /// Fetch user statistics
   Future<Map<String, dynamic>> getUserStats() async {
     try {

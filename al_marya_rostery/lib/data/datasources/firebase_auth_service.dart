@@ -5,6 +5,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter/foundation.dart';
 import '../../../domain/models/auth_models.dart' as auth_models;
 import '../../../domain/models/auth_request_models.dart';
+import '../../../core/services/user_api_service.dart';
 
 /// Firebase-based authentication service
 class FirebaseAuthService {
@@ -89,9 +90,34 @@ class FirebaseAuthService {
       final firebaseUser = _firebaseAuth.currentUser;
       if (firebaseUser == null) return null;
 
-      // Refresh user data
-      await firebaseUser.reload();
-      return _convertFirebaseUser(_firebaseAuth.currentUser);
+      // Get fresh Firebase ID token
+      final token = await firebaseUser.getIdToken();
+      if (token == null) return null;
+
+      // Fetch user profile from backend MongoDB (has latest name, phone, avatar)
+      try {
+        final userApiService = UserApiService();
+        final backendUser = await userApiService.getMyProfile(firebaseToken: token);
+        
+        // Return user with backend data (MongoDB has the latest profile)
+        return auth_models.User(
+          id: backendUser.id,
+          name: backendUser.name,
+          email: backendUser.email,
+          phone: backendUser.phone,
+          avatar: backendUser.avatar,
+          createdAt: backendUser.createdAt,
+          updatedAt: backendUser.updatedAt,
+          isEmailVerified: backendUser.isEmailVerified,
+          isAnonymous: false,
+          roles: backendUser.roles,
+        );
+      } catch (e) {
+        debugPrint('Error fetching backend profile, using Firebase data: $e');
+        // Fallback to Firebase data if backend fails
+        await firebaseUser.reload();
+        return _convertFirebaseUser(_firebaseAuth.currentUser);
+      }
     } catch (e) {
       debugPrint('Error getting current user: $e');
       return null;
