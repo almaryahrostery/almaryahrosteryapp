@@ -7,7 +7,12 @@ const {
   updateUser,
   deleteUser,
   getUserStats,
-  updateMyProfile
+  updateMyProfile,
+  getMyAddresses,
+  addAddress,
+  updateAddress,
+  deleteAddress,
+  setDefaultAddress
 } = require('../controllers/userController');
 const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
 const Order = require('../models/Order');
@@ -119,6 +124,32 @@ router.put(
   upload.single('avatar'), 
   updateMyProfile
 );
+
+// Address management routes
+// @route   GET /api/users/me/addresses
+// @desc    Get all addresses for current user
+// @access  Private
+router.get('/me/addresses', verifyFirebaseToken, getMyAddresses);
+
+// @route   POST /api/users/me/addresses
+// @desc    Add new address
+// @access  Private
+router.post('/me/addresses', verifyFirebaseToken, addAddress);
+
+// @route   PUT /api/users/me/addresses/:addressId
+// @desc    Update address
+// @access  Private
+router.put('/me/addresses/:addressId', verifyFirebaseToken, updateAddress);
+
+// @route   DELETE /api/users/me/addresses/:addressId
+// @desc    Delete address
+// @access  Private
+router.delete('/me/addresses/:addressId', verifyFirebaseToken, deleteAddress);
+
+// @route   PUT /api/users/me/addresses/:addressId/default
+// @desc    Set default address
+// @access  Private
+router.put('/me/addresses/:addressId/default', verifyFirebaseToken, setDefaultAddress);
 
 // @route   POST /api/users/me/fcm-token
 // @desc    Save or update user's FCM token for push notifications

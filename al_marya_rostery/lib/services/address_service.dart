@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:math' show sin, cos, atan2, sqrt, pi;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/saved_address.dart';
 import '../core/utils/app_logger.dart';
+import '../core/services/address_api_service.dart';
 
 class AddressService {
   static const String _addressesKey = 'saved_addresses';
@@ -12,12 +14,20 @@ class AddressService {
   factory AddressService() => _instance;
   AddressService._internal();
 
+  final AddressApiService _apiService = AddressApiService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   List<SavedAddress> _cachedAddresses = [];
   String? _defaultAddressId;
+  bool _syncInProgress = false;
 
-  /// Get all saved addresses
+  /// Get all saved addresses (syncs with backend)
   Future<List<SavedAddress>> getSavedAddresses() async {
     try {
+      // Try to sync with backend first
+      await _syncWithBackend();
+
+      // Load from local cache
       final prefs = await SharedPreferences.getInstance();
       final addressesJson = prefs.getStringList(_addressesKey) ?? [];
 
@@ -28,24 +38,113 @@ class AddressService {
       // Sort by creation date, most recent first
       _cachedAddresses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+      AppLogger.info('Loaded ${_cachedAddresses.length} addresses from local cache', tag: 'AddressService');
       return _cachedAddresses;
     } catch (e) {
-      // Log error in debug mode only
-      assert(() {
-        AppLogger.error('loading saved addresses: $e');
-        return true;
-      }());
-      return [];
+      AppLogger.error('Error loading addresses', tag: 'AddressService', error: e);
+      return _cachedAddresses; // Return cached addresses if available
     }
   }
 
-  /// Save a new address
+  /// Sync addresses with backend
+  Future<void> _syncWithBackend() async {
+    if (_syncInProgress) return; // Prevent concurrent syncs
+
+    try {
+      _syncInProgress = true;
+
+      // Get Firebase token
+      final user = _auth.currentUser;
+      if (user == null) {
+        AppLogger.warning('No user logged in, skipping backend sync', tag: 'AddressService');
+        return;
+      }
+
+      final token = await user.getIdToken();
+      if (token == null) {
+        AppLogger.warning('No Firebase token available', tag: 'AddressService');
+        return;
+      }
+
+      // Fetch addresses from backend
+      AppLogger.info('Syncing addresses with backend...', tag: 'AddressService');
+      final backendAddresses = await _apiService.getAddresses(firebaseToken: token);
+
+      // Update local cache with backend data
+      await _updateLocalCache(backendAddresses);
+
+      AppLogger.success('Synced ${backendAddresses.length} addresses from backend', tag: 'AddressService');
+    } catch (e) {
+      AppLogger.warning('Backend sync failed, using local cache: $e', tag: 'AddressService');
+      // Continue with local cache if backend sync fails
+    } finally {
+      _syncInProgress = false;
+    }
+  }
+
+  /// Update local cache with backend addresses
+  Future<void> _updateLocalCache(List<SavedAddress> addresses) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final addressesJson = addresses.map((addr) => jsonEncode(addr.toJson())).toList();
+      await prefs.setStringList(_addressesKey, addressesJson);
+
+      // Update default address if exists
+      final defaultAddress = addresses.firstWhere(
+        (addr) => addr.isDefault,
+        orElse: () => addresses.isNotEmpty ? addresses.first : SavedAddress(
+          id: '',
+          name: '',
+          fullAddress: '',
+          latitude: 0,
+          longitude: 0,
+          type: AddressType.other,
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      if (defaultAddress.id.isNotEmpty) {
+        await prefs.setString(_defaultAddressKey, defaultAddress.id);
+        _defaultAddressId = defaultAddress.id;
+      }
+
+      _cachedAddresses = addresses;
+      AppLogger.info('Updated local cache with ${addresses.length} addresses', tag: 'AddressService');
+    } catch (e) {
+      AppLogger.error('Error updating local cache', tag: 'AddressService', error: e);
+    }
+  }
+
+  /// Save a new address (syncs to backend)
   Future<bool> saveAddress(SavedAddress address) async {
     try {
+      // Save to backend first
+      final user = _auth.currentUser;
+      if (user != null) {
+        final token = await user.getIdToken();
+        if (token != null) {
+          try {
+            final savedAddress = await _apiService.addAddress(
+              address: address,
+              firebaseToken: token,
+            );
+
+            // Update local cache with backend response
+            await _addToLocalCache(savedAddress);
+            AppLogger.success('Address saved to backend and local cache', tag: 'AddressService');
+            return true;
+          } catch (e) {
+            AppLogger.warning('Backend save failed, saving locally: $e', tag: 'AddressService');
+            // Fall through to local save
+          }
+        }
+      }
+
+      // Fallback: Save to local cache only
       final prefs = await SharedPreferences.getInstance();
       final addressesJson = prefs.getStringList(_addressesKey) ?? [];
 
-      // Check if address already exists (same coordinates AND same name)
+      // Check if address already exists
       final existingAddresses = addressesJson
           .map((json) => SavedAddress.fromJson(jsonDecode(json)))
           .toList();
@@ -59,18 +158,19 @@ class AddressService {
                   address.latitude,
                   address.longitude,
                 ) <
-                0.01), // Within 10 meters AND same coordinates (very close)
+                0.01), // Within 10 meters
       );
 
       if (isDuplicate) {
-        return false; // Address already exists
+        AppLogger.warning('Duplicate address detected', tag: 'AddressService');
+        return false;
       }
 
-      // Add new address
+      // Add new address locally
       addressesJson.add(jsonEncode(address.toJson()));
       await prefs.setStringList(_addressesKey, addressesJson);
 
-      // If this is the first address or marked as default, set as default
+      // Set as default if first address or marked as default
       if (addressesJson.length == 1 || address.isDefault) {
         await setDefaultAddress(address.id);
       }
@@ -79,20 +179,69 @@ class AddressService {
       _cachedAddresses.add(address);
       _cachedAddresses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+      AppLogger.info('Address saved to local cache only', tag: 'AddressService');
       return true;
     } catch (e) {
-      // Log error in debug mode only
-      assert(() {
-        AppLogger.error('saving address: $e');
-        return true;
-      }());
+      AppLogger.error('Error saving address', tag: 'AddressService', error: e);
       return false;
     }
   }
 
-  /// Delete an address
+  /// Add address to local cache
+  Future<void> _addToLocalCache(SavedAddress address) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final addressesJson = prefs.getStringList(_addressesKey) ?? [];
+
+      // Remove duplicate if exists
+      final addresses = addressesJson
+          .map((json) => SavedAddress.fromJson(jsonDecode(json)))
+          .where((existing) => existing.id != address.id)
+          .toList();
+
+      // Add new address
+      addresses.add(address);
+      addresses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      // Save back to preferences
+      final updatedJson = addresses.map((addr) => jsonEncode(addr.toJson())).toList();
+      await prefs.setStringList(_addressesKey, updatedJson);
+
+      // Update cache
+      _cachedAddresses = addresses;
+
+      // Set as default if marked
+      if (address.isDefault) {
+        await prefs.setString(_defaultAddressKey, address.id);
+        _defaultAddressId = address.id;
+      }
+    } catch (e) {
+      AppLogger.error('Error adding to local cache', tag: 'AddressService', error: e);
+    }
+  }
+
+  /// Delete an address (syncs with backend)
   Future<bool> deleteAddress(String addressId) async {
     try {
+      // Delete from backend first
+      final user = _auth.currentUser;
+      if (user != null) {
+        final token = await user.getIdToken();
+        if (token != null) {
+          try {
+            await _apiService.deleteAddress(
+              addressId: addressId,
+              firebaseToken: token,
+            );
+            AppLogger.success('Address deleted from backend', tag: 'AddressService');
+          } catch (e) {
+            AppLogger.warning('Backend delete failed: $e', tag: 'AddressService');
+            // Continue with local delete
+          }
+        }
+      }
+
+      // Delete from local cache
       final prefs = await SharedPreferences.getInstance();
       final addressesJson = prefs.getStringList(_addressesKey) ?? [];
 
@@ -113,29 +262,43 @@ class AddressService {
       // Update cache
       _cachedAddresses.removeWhere((address) => address.id == addressId);
 
+      AppLogger.info('Address deleted from local cache', tag: 'AddressService');
       return true;
     } catch (e) {
-      // Log error in debug mode only
-      assert(() {
-        AppLogger.error('deleting address: $e');
-        return true;
-      }());
+      AppLogger.error('Error deleting address', tag: 'AddressService', error: e);
       return false;
     }
   }
 
-  /// Set default address
+  /// Set default address (syncs with backend)
   Future<void> setDefaultAddress(String addressId) async {
     try {
+      // Set default in backend first
+      final user = _auth.currentUser;
+      if (user != null) {
+        final token = await user.getIdToken();
+        if (token != null) {
+          try {
+            await _apiService.setDefaultAddress(
+              addressId: addressId,
+              firebaseToken: token,
+            );
+            AppLogger.success('Default address set in backend', tag: 'AddressService');
+          } catch (e) {
+            AppLogger.warning('Backend setDefault failed: $e', tag: 'AddressService');
+            // Continue with local update
+          }
+        }
+      }
+
+      // Update local cache
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_defaultAddressKey, addressId);
       _defaultAddressId = addressId;
+
+      AppLogger.info('Default address set locally: $addressId', tag: 'AddressService');
     } catch (e) {
-      // Log error in debug mode only
-      assert(() {
-        AppLogger.error('setting default address: $e');
-        return true;
-      }());
+      AppLogger.error('Error setting default address', tag: 'AddressService', error: e);
     }
   }
 

@@ -126,6 +126,48 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Delivery addresses
+  addresses: [{
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    fullAddress: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    latitude: {
+      type: Number,
+      required: true
+    },
+    longitude: {
+      type: Number,
+      required: true
+    },
+    type: {
+      type: String,
+      enum: ['home', 'work', 'other'],
+      default: 'other'
+    },
+    buildingDetails: {
+      type: String,
+      trim: true
+    },
+    landmark: {
+      type: String,
+      trim: true
+    },
+    isDefault: {
+      type: Boolean,
+      default: false
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   gender: {
     type: String,
     enum: ['male', 'female', 'other', 'prefer_not_to_say'],

@@ -40,6 +40,36 @@ class SavedAddress {
     );
   }
 
+  /// Parse address from backend API response (MongoDB format)
+  factory SavedAddress.fromBackendJson(Map<String, dynamic> json) {
+    // Parse address type from string
+    final typeStr = (json['type'] as String?)?.toLowerCase() ?? 'other';
+    AddressType addressType;
+    switch (typeStr) {
+      case 'home':
+        addressType = AddressType.home;
+        break;
+      case 'work':
+        addressType = AddressType.work;
+        break;
+      default:
+        addressType = AddressType.other;
+    }
+
+    return SavedAddress(
+      id: json['_id'] as String, // MongoDB uses _id
+      name: json['name'] as String,
+      fullAddress: json['fullAddress'] as String,
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+      buildingDetails: json['buildingDetails'] as String?,
+      landmark: json['landmark'] as String?,
+      type: addressType,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      isDefault: json['isDefault'] as bool? ?? false,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
