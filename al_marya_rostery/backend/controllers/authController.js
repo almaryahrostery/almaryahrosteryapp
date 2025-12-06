@@ -66,7 +66,8 @@ const register = async (req, res) => {
           isEmailVerified: user.isEmailVerified
         },
         token,
-        refreshToken
+        refreshToken,
+        expiresIn: 604800 // 7 days in seconds (matching JWT_EXPIRE default)
       }
     });
   } catch (error) {
@@ -198,7 +199,8 @@ const login = async (req, res) => {
           lastLogin: user.lastLogin
         },
         token,
-        refreshToken
+        refreshToken,
+        expiresIn: 604800 // 7 days in seconds (matching JWT_EXPIRE default)
       }
     });
   } catch (error) {

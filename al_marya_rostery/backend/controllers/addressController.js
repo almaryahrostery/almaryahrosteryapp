@@ -35,11 +35,13 @@ exports.getUserAddresses = async (req, res) => {
       addresses,
     });
   } catch (error) {
-    console.error('Error fetching addresses:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error fetching addresses', { userId: req.user?._id, error: error.message });
+    
     res.status(500).json({
       success: false,
+      code: 'INTERNAL_ERROR',
       message: 'Failed to fetch addresses',
-      error: error.message,
     });
   }
 };
@@ -64,11 +66,13 @@ exports.getAddressById = async (req, res) => {
       address,
     });
   } catch (error) {
-    console.error('Error fetching address:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error fetching address', { userId: req.user?._id, addressId: req.params.id, error: error.message });
+    
     res.status(500).json({
       success: false,
+      code: 'INTERNAL_ERROR',
       message: 'Failed to fetch address',
-      error: error.message,
     });
   }
 };
@@ -107,6 +111,7 @@ exports.createAddress = async (req, res) => {
     if (!latitude || !longitude) {
       return res.status(400).json({
         success: false,
+        code: 'VALIDATION_ERROR',
         message: 'Location coordinates are required',
       });
     }
@@ -142,11 +147,22 @@ exports.createAddress = async (req, res) => {
       address,
     });
   } catch (error) {
-    console.error('Error creating address:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error creating address', { userId: req.user?._id, error: error.message });
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid address data',
+      });
+    }
+    
     res.status(500).json({
       success: false,
+      code: 'INTERNAL_ERROR',
       message: 'Failed to create address',
-      error: error.message,
     });
   }
 };
@@ -218,11 +234,22 @@ exports.updateAddress = async (req, res) => {
       address,
     });
   } catch (error) {
-    console.error('Error updating address:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error updating address', { userId: req.user?._id, addressId: req.params.id, error: error.message });
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid address data',
+      });
+    }
+    
     res.status(500).json({
       success: false,
+      code: 'INTERNAL_ERROR',
       message: 'Failed to update address',
-      error: error.message,
     });
   }
 };
@@ -259,11 +286,13 @@ exports.deleteAddress = async (req, res) => {
       message: 'Address deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting address:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error deleting address', { userId: req.user?._id, addressId: req.params.id, error: error.message });
+    
     res.status(500).json({
       success: false,
+      code: 'INTERNAL_ERROR',
       message: 'Failed to delete address',
-      error: error.message,
     });
   }
 };
@@ -288,15 +317,17 @@ exports.setDefaultAddress = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Default address updated',
+      message: 'Default address updated successfully',
       address,
     });
   } catch (error) {
-    console.error('Error setting default address:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error setting default address', { userId: req.user?._id, addressId: req.params.id, error: error.message });
+    
     res.status(500).json({
       success: false,
-      message: 'Failed to set default address',
-      error: error.message,
+      code: 'INTERNAL_ERROR',
+      message: 'Failed to update default address',
     });
   }
 };
@@ -325,11 +356,12 @@ exports.verifyAddress = async (req, res) => {
       address,
     });
   } catch (error) {
-    console.error('Error verifying address:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error verifying address', { addressId: req.params.id, error: error.message });
     res.status(500).json({
       success: false,
+      code: 'INTERNAL_ERROR',
       message: 'Failed to verify address',
-      error: error.message,
     });
   }
 };
@@ -365,11 +397,12 @@ exports.findNearbyAddresses = async (req, res) => {
       addresses,
     });
   } catch (error) {
-    console.error('Error finding nearby addresses:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error finding nearby addresses', { lat: req.body.lat, lng: req.body.lng, error: error.message });
     res.status(500).json({
       success: false,
+      code: 'INTERNAL_ERROR',
       message: 'Failed to find nearby addresses',
-      error: error.message,
     });
   }
 };

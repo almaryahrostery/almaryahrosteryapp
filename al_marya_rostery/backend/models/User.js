@@ -29,19 +29,23 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: [8, 'Password must be at least 8 characters'],
     maxlength: [128, 'Password too long'],
-    select: false, // Don't include password in queries by default
-    validate: {
-      validator: function(password) {
-        // Strong password policy: at least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
-        const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
-        return strongPasswordRegex.test(password);
-      },
-      message: 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)'
-    }
+    select: false // Don't include password in queries by default
+    // Removed complex password validation - just require 8 characters minimum
   },
   phone: {
     type: String,
-    trim: true
+    required: [true, 'Phone number is required'],
+    trim: true,
+    validate: {
+      validator: function(phone) {
+        // International phone format: +[country code][number]
+        // Allows: +1234567890, +971501234567, etc.
+        // 8-15 digits total (after country code)
+        const phoneRegex = /^\+[1-9]\d{1,3}\d{7,14}$/;
+        return phoneRegex.test(phone);
+      },
+      message: 'Please provide a valid phone number with country code (e.g., +971501234567)'
+    }
   },
   avatar: {
     type: String,

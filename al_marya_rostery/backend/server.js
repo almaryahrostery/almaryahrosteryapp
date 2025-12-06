@@ -213,8 +213,11 @@ app.use('/api/admin/drivers', createCacheMiddleware({
   cacheAuthenticated: true  // Enable caching for authenticated admin requests
 }), require('./routes/admin/drivers')); // Admin Driver Management
 
-// Debug routes (for development)
-app.use('/api/debug', require('./routes/debug'));
+// Debug routes (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/debug', require('./routes/debug'));
+  console.log('⚠️ Debug routes enabled (development mode)');
+}
 
 // Email testing routes (admin only)
 app.use('/api/test', require('./routes/emailTest'));

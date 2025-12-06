@@ -56,7 +56,8 @@ settingsSchema.statics.getSetting = async function(key, defaultValue = null) {
     const setting = await this.findOne({ key });
     return setting ? setting.value : defaultValue;
   } catch (error) {
-    console.error('Error getting setting:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error getting setting', { key, error: error.message });
     return defaultValue;
   }
 };
@@ -94,7 +95,8 @@ settingsSchema.statics.setSetting = async function(key, value, options = {}) {
 
     return setting;
   } catch (error) {
-    console.error('Error setting value:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error setting value', { key, error: error.message });
     throw error;
   }
 };
@@ -116,7 +118,8 @@ settingsSchema.statics.getSettingsByCategory = async function(category, includeP
     
     return result;
   } catch (error) {
-    console.error('Error getting settings by category:', error);
+    const logger = require('../utils/logger');
+    logger.error('Error getting settings by category', { category, error: error.message });
     return {};
   }
 };
@@ -128,7 +131,7 @@ settingsSchema.statics.initializeDefaults = async function() {
     { key: 'app_name', value: 'Qahwat Al Emarat', category: 'general', description: 'Application name', isPublic: true },
     { key: 'app_description', value: 'Premium Arabic Coffee Experience', category: 'general', description: 'Application description', isPublic: true },
     { key: 'contact_email', value: 'info@qahwatalemarat.com', category: 'general', description: 'Contact email address', isPublic: true },
-    { key: 'contact_phone', value: '+971-XX-XXXX-XXX', category: 'general', description: 'Contact phone number', isPublic: true },
+    { key: 'contact_phone', value: '+971 025842392', category: 'general', description: 'Business contact phone number', isPublic: true },
     { key: 'address', value: 'Dubai, UAE', category: 'general', description: 'Business address', isPublic: true },
     { key: 'store_latitude', value: '', category: 'general', description: 'Store latitude coordinate for Google Maps', isPublic: true },
     { key: 'store_longitude', value: '', category: 'general', description: 'Store longitude coordinate for Google Maps', isPublic: true },
@@ -199,7 +202,8 @@ settingsSchema.statics.initializeDefaults = async function() {
     });
   }
 
-  console.log('Default settings initialized');
+  const logger = require('../utils/logger');
+  logger.info('Default settings initialized');
 };
 
 module.exports = mongoose.model('Settings', settingsSchema);

@@ -20,7 +20,8 @@ function initializeSocket(server) {
       const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
 
       if (!token) {
-        console.log('Socket connection attempt without token');
+        const logger = require('../utils/logger');
+        logger.debug('Socket connection attempt without token');
         // Allow connection but mark as unauthenticated
         socket.isAuthenticated = false;
         return next();
@@ -32,10 +33,12 @@ function initializeSocket(server) {
       socket.userRoles = decoded.roles || [];
       socket.isAuthenticated = true;
 
-      console.log(`Socket authenticated for user: ${socket.userId}`);
+      const logger = require('../utils/logger');
+      logger.info('Socket authenticated', { userId: socket.userId });
       next();
     } catch (error) {
-      console.error('Socket authentication error:', error.message);
+      const logger = require('../utils/logger');
+      logger.error('Socket authentication error', { error: error.message });
       socket.isAuthenticated = false;
       next(); // Allow connection but unauthenticated
     }
@@ -43,7 +46,8 @@ function initializeSocket(server) {
 
   // Connection handler
   io.on('connection', (socket) => {
-    console.log(`Socket connected: ${socket.id}, User: ${socket.userId || 'guest'}`);
+    const logger = require('../utils/logger');
+    logger.info('Socket connected', { socketId: socket.id, userId: socket.userId || 'guest' });
 
     // Join order tracking room
     socket.on('join_order_room', async ({ orderId, roomName }) => {
@@ -58,7 +62,7 @@ function initializeSocket(server) {
         }
 
         socket.join(room);
-        console.log(`Socket ${socket.id} joined room: ${room}`);
+        logger.info('Socket joined order room', { socketId: socket.id, room, userId: socket.userId });
 
         socket.emit('joined_order_room', {
           orderId,
@@ -73,7 +77,7 @@ function initializeSocket(server) {
         });
 
       } catch (error) {
-        console.error('Error joining order room:', error);
+        logger.error('Error joining order room', { socketId: socket.id, error: error.message });
         socket.emit('error', { message: 'Failed to join room' });
       }
     });
@@ -82,7 +86,7 @@ function initializeSocket(server) {
     socket.on('leave_order_room', ({ orderId, roomName }) => {
       const room = roomName || `order_room_${orderId}`;
       socket.leave(room);
-      console.log(`Socket ${socket.id} left room: ${room}`);
+      logger.info('Socket left order room', { socketId: socket.id, room, userId: socket.userId });
 
       socket.to(room).emit('user_left', {
         userId: socket.userId,
@@ -103,7 +107,7 @@ function initializeSocket(server) {
         timestamp: new Date().toISOString()
       });
 
-      console.log(`Driver location update for order ${orderId}: ${lat}, ${lng}`);
+      logger.debug('Driver location update', { orderId, lat, lng, socketId: socket.id });
     });
 
     // Handle status updates
@@ -117,7 +121,7 @@ function initializeSocket(server) {
         timestamp: new Date().toISOString()
       });
 
-      console.log(`Status update for order ${orderId}: ${status}`);
+      logger.info('Order status update', { orderId, status, socketId: socket.id });
     });
 
     // Handle ETA updates
@@ -132,7 +136,7 @@ function initializeSocket(server) {
         durationSeconds
       });
 
-      console.log(`ETA update for order ${orderId}`);
+      logger.info('ETA update', { orderId, etaStart, etaEnd, socketId: socket.id });
     });
 
     // Handle ping/pong for connection health
@@ -142,16 +146,16 @@ function initializeSocket(server) {
 
     // Disconnection handler
     socket.on('disconnect', (reason) => {
-      console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`);
+      logger.info('Socket disconnected', { socketId: socket.id, userId: socket.userId, reason });
     });
 
     // Error handler
     socket.on('error', (error) => {
-      console.error(`Socket error from ${socket.id}:`, error);
+      logger.error('Socket error', { socketId: socket.id, userId: socket.userId, error: error.message || error });
     });
   });
 
-  console.log('Socket.IO initialized successfully');
+  logger.info('Socket.IO initialized successfully');
   return io;
 }
 

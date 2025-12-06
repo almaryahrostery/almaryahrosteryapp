@@ -107,7 +107,9 @@ class UserApiService {
       );
 
       if (response.data['success'] == true) {
-        return UserModel.fromJson(response.data['data']);
+        final profileData = response.data['data'] as Map<String, dynamic>?;
+        final normalizedUser = _extractUserJson(profileData);
+        return UserModel.fromJson(normalizedUser);
       } else {
         throw Exception('Failed to fetch profile');
       }
@@ -399,7 +401,9 @@ class UserApiService {
 
       if (response.data['success'] == true) {
         AppLogger.success('Profile updated successfully', tag: 'UserAPI');
-        return UserModel.fromJson(response.data['user']);
+        final responseData = response.data['data'] as Map<String, dynamic>?;
+        final normalizedUser = _extractUserJson(responseData);
+        return UserModel.fromJson(normalizedUser);
       } else {
         final errorMessage =
             response.data['message'] ?? 'Failed to update profile';
@@ -450,5 +454,32 @@ class UserApiService {
       AppLogger.error('Error updating profile', tag: 'UserAPI', error: e);
       throw Exception('Error updating profile: $e');
     }
+  }
+
+  /// Extracts the user payload regardless of backend nesting format
+  Map<String, dynamic> _extractUserJson(Map<String, dynamic>? data) {
+    if (data == null || data.isEmpty) {
+      throw Exception('User data missing from response');
+    }
+
+    Map<String, dynamic> userJson;
+    if (data['user'] is Map<String, dynamic>) {
+      userJson = Map<String, dynamic>.from(
+        data['user'] as Map<String, dynamic>,
+      );
+    } else {
+      userJson = Map<String, dynamic>.from(data);
+    }
+
+    // Normalize id field for UserModel expectations
+    if (!userJson.containsKey('_id') && userJson['id'] != null) {
+      userJson['_id'] = userJson['id'];
+    }
+
+    userJson.putIfAbsent('preferences', () => {});
+    userJson.putIfAbsent('loyaltyProgram', () => {});
+    userJson.putIfAbsent('statistics', () => {});
+
+    return userJson;
   }
 }

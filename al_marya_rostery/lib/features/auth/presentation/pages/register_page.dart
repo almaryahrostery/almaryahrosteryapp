@@ -211,8 +211,9 @@ class _RegisterPageState extends State<RegisterPage> {
       controller: _phoneController,
       keyboardType: TextInputType.phone,
       decoration: InputDecoration(
-        labelText: 'Phone (Optional)',
-        hintText: 'Enter your phone number',
+        labelText: 'Phone Number *',
+        hintText: '501234567',
+        prefixText: '+971 ',
         prefixIcon: const Icon(Icons.phone, color: AppTheme.primaryBrown),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
@@ -221,11 +222,12 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
       validator: (value) {
-        if (value != null && value.isNotEmpty) {
-          // Basic phone validation
-          if (!RegExp(r'^\+?[\d\s\-\(\)]{10,}$').hasMatch(value)) {
-            return 'Please enter a valid phone number';
-          }
+        if (value == null || value.isEmpty) {
+          return 'Phone number is required';
+        }
+        // UAE format: Must start with 5 and have exactly 9 digits total (5XXXXXXXX)
+        if (!RegExp(r'^5\d{8}$').hasMatch(value)) {
+          return 'Enter valid UAE number starting with 5 (9 digits)';
         }
         return null;
       },
@@ -238,7 +240,7 @@ class _RegisterPageState extends State<RegisterPage> {
       obscureText: _obscurePassword,
       decoration: InputDecoration(
         labelText: 'Password',
-        hintText: 'Create a strong password',
+        hintText: 'At least 8 characters',
         prefixIcon: const Icon(Icons.lock, color: AppTheme.primaryBrown),
         suffixIcon: IconButton(
           icon: Icon(
@@ -263,15 +265,6 @@ class _RegisterPageState extends State<RegisterPage> {
         }
         if (value.length < 8) {
           return 'Password must be at least 8 characters';
-        }
-        if (!RegExp(r'(?=.*[a-z])').hasMatch(value)) {
-          return 'Password must contain at least one lowercase letter';
-        }
-        if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) {
-          return 'Password must contain at least one uppercase letter';
-        }
-        if (!RegExp(r'(?=.*\d)').hasMatch(value)) {
-          return 'Password must contain at least one number';
         }
         return null;
       },
@@ -456,7 +449,7 @@ class _RegisterPageState extends State<RegisterPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         confirmPassword: _passwordController.text,
-        phone: _phoneController.text.trim(),
+        phone: '+971${_phoneController.text.trim()}',
       );
 
       if (authProvider.isAuthenticated && mounted) {

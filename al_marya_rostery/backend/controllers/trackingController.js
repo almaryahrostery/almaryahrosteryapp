@@ -81,8 +81,14 @@ exports.getOrderTracking = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error getting order tracking:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const logger = require('../utils/logger');
+    logger.error('Error getting order tracking', { orderId: req.params.orderId, error: error.message });
+    
+    res.status(500).json({ 
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: 'Server error' 
+    });
   }
 };
 
@@ -140,11 +146,17 @@ exports.updateOrderStatus = async (req, res) => {
     res.json({
       success: true,
       tracking,
-      message: 'Order status updated'
+      message: 'Driver location updated'
     });
   } catch (error) {
-    console.error('Error updating order status:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const logger = require('../utils/logger');
+    logger.error('Error updating driver location', { orderId: req.body.orderId, error: error.message });
+    
+    res.status(500).json({ 
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: 'Server error' 
+    });
   }
 };
 
@@ -193,8 +205,14 @@ exports.updateDriverLocation = async (req, res) => {
       message: 'Driver location updated'
     });
   } catch (error) {
-    console.error('Error updating driver location:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const logger = require('../utils/logger');
+    logger.error('Error updating driver location', { orderId: req.body.orderId, error: error.message });
+    
+    res.status(500).json({ 
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: 'Server error'
+    });
   }
 };
 
@@ -251,8 +269,13 @@ exports.calculateETA = async (req, res) => {
 
     res.json({ eta });
   } catch (error) {
-    console.error('Error calculating ETA:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const logger = require('../utils/logger');
+    logger.error('Error calculating ETA', { orderId: req.params.orderId, error: error.message });
+    res.status(500).json({ 
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: 'Failed to calculate ETA' 
+    });
   }
 };
 

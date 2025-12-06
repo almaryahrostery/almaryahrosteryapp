@@ -21,6 +21,23 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Rate limiter for authentication endpoints (prevents brute force attacks)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login/register attempts per windowMs
+  message: 'Too many authentication attempts. Please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many authentication attempts from this IP. Please try again in 15 minutes.',
+      retryAfter: Math.ceil(req.rateLimit.resetTime / 1000)
+    });
+  }
+});
+
 // Rate limiter for token refresh endpoint (prevents abuse)
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -31,7 +48,25 @@ const refreshLimiter = rateLimit({
   handler: (req, res) => {
     res.status(429).json({
       success: false,
+      code: 'RATE_LIMIT_EXCEEDED',
       message: 'Too many token refresh attempts. Please try again in 15 minutes.',
+      retryAfter: Math.ceil(req.rateLimit.resetTime / 1000)
+    });
+  }
+});
+
+// Rate limiter for password reset (prevents abuse)
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Limit each IP to 3 password reset requests per hour
+  message: 'Too many password reset attempts.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many password reset attempts. Please try again in 1 hour.',
       retryAfter: Math.ceil(req.rateLimit.resetTime / 1000)
     });
   }
@@ -133,13 +168,13 @@ const resetPasswordValidation = [
     .withMessage('Confirm password is required')
 ];
 
-// Public routes
-router.post('/register', registerValidation, register);
-router.post('/login', loginValidation, login);
-router.post('/admin-login', adminLoginValidation, adminLogin);
+// Public routes (with rate limiting for security)
+router.post('/register', authLimiter, registerValidation, register);
+router.post('/login', authLimiter, loginValidation, login);
+router.post('/admin-login', authLimiter, adminLoginValidation, adminLogin);
 router.post('/refresh', refreshLimiter, refreshToken); // Rate limited
-router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
-router.post('/reset-password', resetPasswordValidation, resetPassword);
+router.post('/forgot-password', passwordResetLimiter, forgotPasswordValidation, forgotPassword);
+router.post('/reset-password', passwordResetLimiter, resetPasswordValidation, resetPassword);
 router.get('/verify-email/:token', verifyEmail);
 
 // OAuth routes
