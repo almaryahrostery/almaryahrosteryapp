@@ -1,5 +1,6 @@
 const socketIO = require('socket.io');
 const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger');
 
 let io = null;
 
@@ -20,7 +21,6 @@ function initializeSocket(server) {
       const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
 
       if (!token) {
-        const logger = require('../utils/logger');
         logger.debug('Socket connection attempt without token');
         // Allow connection but mark as unauthenticated
         socket.isAuthenticated = false;
@@ -33,11 +33,9 @@ function initializeSocket(server) {
       socket.userRoles = decoded.roles || [];
       socket.isAuthenticated = true;
 
-      const logger = require('../utils/logger');
       logger.info('Socket authenticated', { userId: socket.userId });
       next();
     } catch (error) {
-      const logger = require('../utils/logger');
       logger.error('Socket authentication error', { error: error.message });
       socket.isAuthenticated = false;
       next(); // Allow connection but unauthenticated
@@ -46,7 +44,6 @@ function initializeSocket(server) {
 
   // Connection handler
   io.on('connection', (socket) => {
-    const logger = require('../utils/logger');
     logger.info('Socket connected', { socketId: socket.id, userId: socket.userId || 'guest' });
 
     // Join order tracking room
