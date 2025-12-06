@@ -25,6 +25,17 @@ const register = async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
 
+    console.log('📝 Registration request received:', { name, email, phone });
+
+    // Validate required fields
+    if (!name || !email || !password || !phone) {
+      console.error('❌ Missing required fields:', { name, email, password, phone });
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: name, email, password, phone'
+      });
+    }
+
     // Check if user exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
@@ -35,12 +46,15 @@ const register = async (req, res) => {
     }
 
     // Create user
+    console.log('🔨 Creating user in MongoDB...');
     const user = await User.create({
       name,
       email,
       password,
       phone
     });
+
+    console.log('✅ User created successfully:', user._id);
 
     // Auto-sync to Firebase and create loyalty account
     // This happens in background, don't block registration if it fails
@@ -71,11 +85,24 @@ const register = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('❌ Register error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      validationErrors: error.errors ? Object.entries(error.errors).map(([key, err]) => ({
+        field: key,
+        message: err.message,
+        value: err.value
+      })) : null
+    });
+    
     res.status(500).json({
       success: false,
       message: 'Server error during registration',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        validationErrors: error.errors ? Object.keys(error.errors) : null
+      } : undefined
     });
   }
 };
