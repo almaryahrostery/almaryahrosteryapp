@@ -58,10 +58,15 @@ const register = async (req, res) => {
 
     // Auto-sync to Firebase and create loyalty account
     // This happens in background, don't block registration if it fails
-    autoSyncService.syncNewUser(user).catch(err => {
-      console.error('❌ Auto-sync failed during registration:', err.message);
-      // Log but don't fail registration
-    });
+    try {
+      autoSyncService.syncNewUser(user).catch(err => {
+        console.error('❌ Auto-sync failed during registration:', err.message);
+        // Log but don't fail registration
+      });
+    } catch (syncErr) {
+      console.error('❌ Auto-sync service error:', syncErr.message);
+      // Continue with registration even if sync fails
+    }
 
     // Generate tokens
     const token = generateToken(user._id);
