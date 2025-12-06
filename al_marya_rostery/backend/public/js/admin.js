@@ -1094,6 +1094,11 @@ async function loadReports() {
 function renderReports(salesData, productsData, usersData) {
     const reportsContainer = document.querySelector('#reportsContent');
     
+    if (!reportsContainer) {
+        console.error('Reports container element not found in DOM');
+        return;
+    }
+    
     reportsContainer.innerHTML = `
         <div class="reports-dashboard">
             <!-- Report Types -->

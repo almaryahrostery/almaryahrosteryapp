@@ -1050,3 +1050,63 @@ function addUserDetailStyles() {
     
     document.head.appendChild(style);
 }
+
+/**
+ * Show modal to add a new user
+ * This function is called from the Add User button in the Users section
+ */
+function showAddUserModal() {
+    const modalHTML = `
+        <div class="modal-overlay" id="addUserModal">
+            <div class="user-edit-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-plus"></i> Add New User</h3>
+                    <button class="close-btn" onclick="closeAddUserModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <div style="padding: 2rem; text-align: center; color: #666;">
+                        <i class="fas fa-info-circle" style="font-size: 2rem; margin-bottom: 1rem; color: var(--info);"></i>
+                        <p style="margin: 1rem 0;"><strong>Add User Feature Coming Soon</strong></p>
+                        <p>User management is currently handled through Firebase Admin Panel.</p>
+                        <p>To add users, please use the Firebase Console or the registration endpoint.</p>
+                        <button class="btn btn-secondary" onclick="closeAddUserModal()" style="margin-top: 1rem;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove any existing modal
+    const existing = document.getElementById('addUserModal');
+    if (existing) {
+        existing.remove();
+    }
+    
+    // Create and show modal
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHTML;
+    document.body.appendChild(temp.firstElementChild);
+    
+    // Add click outside to close
+    document.getElementById('addUserModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAddUserModal();
+        }
+    });
+}
+
+/**
+ * Close the add user modal
+ */
+function closeAddUserModal() {
+    const modal = document.getElementById('addUserModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
